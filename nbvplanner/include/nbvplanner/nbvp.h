@@ -49,6 +49,7 @@ class nbvPlanner
   ros::Subscriber peerPosClient3_;
   ros::Subscriber evadeClient_;
   ros::Publisher evadePub_;
+  ros::Publisher peerPosPub_;
   ros::ServiceServer plannerService_;
   ros::Subscriber pointcloud_sub_;
   ros::Subscriber pointcloud_sub_cam_up_;

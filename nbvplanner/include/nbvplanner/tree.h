@@ -121,6 +121,7 @@ class TreeBase
   int getCounter();
   bool gainFound();
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
+  virtual std::vector<tf::Vector3> printPeerPose(int num) = 0;
 };
 }
 
