@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     samples_array.header.stamp = ros::Time::now();
     samples_array.points.clear();
     n_seq++;
-    tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), -M_PI * i);
+    tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), -2 *M_PI * i);
     trajectory_point.setFromYaw(tf::getYaw(quat));
     mav_msgs::msgMultiDofJointTrajectoryPointFromEigen(trajectory_point, &trajectory_point_msg);
     samples_array.points.push_back(trajectory_point_msg);
