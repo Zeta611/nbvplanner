@@ -40,6 +40,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
 
   // Set up the topics and services
   params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
+  peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
   plannerService_ = nh_.advertiseService("nbvplanner",
                                          &nbvInspection::nbvPlanner<stateVec>::plannerCallback,
@@ -215,6 +216,37 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   }
   evadePub_.publish(segment);
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
+
+  std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
+
+  for ( int i = 0; i <  peerPoses.size() ; i++  ){
+    // Publish visualization of total exploration area
+    visualization_msgs::Marker p;
+    p.header.stamp = ros::Time::now();
+    p.header.seq = 0;
+    p.header.frame_id = params_.navigationFrame_;
+    p.id = i;
+    p.ns = "workspace";
+    p.type = visualization_msgs::Marker::CUBE;
+    p.action = visualization_msgs::Marker::ADD;
+    p.pose.position.x = peerPoses[i].x();
+    p.pose.position.y = peerPoses[i].y();
+    p.pose.position.z = peerPoses[i].z();
+    tf::Quaternion quat;
+    quat.setEuler(0.0, 0.0, 0.0);
+    p.pose.orientation.x = quat.x();
+    p.pose.orientation.y = quat.y();
+    p.pose.orientation.z = quat.z();
+    p.pose.orientation.w = quat.w();
+    p.scale.x = 1;
+    p.scale.y = 1;
+    p.scale.z = 1;
+    p.color.r = 200.0 / 255.0;
+    p.color.g = 100.0 / 255.0;
+    p.color.b = 0.0;
+    p.color.a = 1.0;
+    peerPosPub_.publish(p);
+  }
   return true;
 }
 

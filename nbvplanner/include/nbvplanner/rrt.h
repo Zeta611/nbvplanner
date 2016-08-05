@@ -53,6 +53,8 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   double gain(StateVec state);
   std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end,
                                               std::string targetFrame);
+  virtual std::vector<tf::Vector3> printPeerPose(int num);
+  void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
  protected:
   kdtree * kdTree_;
   std::stack<StateVec> history_;
@@ -64,6 +66,8 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   std::fstream fileResponse_;
   std::string logFilePath_;
   std::vector<double> inspectionThrottleTime_;
+private:
+  static std::vector<tf::Vector3> peer_vehicles_;
 };
 }
 

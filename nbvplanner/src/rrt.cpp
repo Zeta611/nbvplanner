@@ -134,6 +134,9 @@ void nbvInspection::RrtTree::setStateFromPoseMsg(
   // Update the inspected parts of the mesh using the current position
   if (ros::Time::now().toSec() - inspectionThrottleTime_[0] > params_.inspection_throttle_) {
     inspectionThrottleTime_[0] += params_.inspection_throttle_;
+    geometry_msgs::Pose poseTransformed;
+    tf::poseTFToMsg(transform * poseTF, poseTransformed);
+    setPeerPoseInTree(poseTransformed, 0);
     if (mesh_) {
       geometry_msgs::Pose poseTransformed;
       tf::poseTFToMsg(transform * poseTF, poseTransformed);
@@ -212,6 +215,9 @@ void nbvInspection::RrtTree::setStateFromOdometryMsg(
   // Update the inspected parts of the mesh using the current position
   if (ros::Time::now().toSec() - inspectionThrottleTime_[0] > params_.inspection_throttle_) {
     inspectionThrottleTime_[0] += params_.inspection_throttle_;
+      geometry_msgs::Pose poseTransformed;
+      tf::poseTFToMsg(transform * poseTF, poseTransformed);
+      setPeerPoseInTree(poseTransformed, 0);
     if (mesh_) {
       geometry_msgs::Pose poseTransformed;
       tf::poseTFToMsg(transform * poseTF, poseTransformed);
@@ -272,12 +278,35 @@ void nbvInspection::RrtTree::setPeerStateFromPoseMsg(
   // Update the inspected parts of the mesh using the current position
   if (ros::Time::now().toSec() - inspectionThrottleTime_[n_peer] > params_.inspection_throttle_) {
     inspectionThrottleTime_[n_peer] += params_.inspection_throttle_;
+    setPeerPoseInTree(poseTransformed, n_peer);
     if (mesh_) {
       mesh_->setPeerPose(poseTransformed, n_peer);
       mesh_->incorporateViewFromPoseMsg(poseTransformed, n_peer);
     }
   }
 }
+
+std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
+{
+  for ( int i = 0; i <  peer_vehicles_.size() ; i++  ){
+    std::cout << num << "-th peer" << i << ": " << peer_vehicles_[i].x()
+              << ", " << peer_vehicles_[i].y() << ", " << peer_vehicles_[i].z() << std::endl;
+    std::cout << "peer_vehicles_.size() is " << peer_vehicles_.size() << std::endl;
+  }
+  return peer_vehicles_;
+}
+
+void nbvInspection::RrtTree::setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer)
+{
+  if (peer_vehicles_.size() > n_peer) {
+    peer_vehicles_[n_peer] = tf::Vector3(pose.position.x, pose.position.y, pose.position.z);
+    return;
+  }
+  while (peer_vehicles_.size() <= n_peer) {
+    peer_vehicles_.push_back(tf::Vector3(pose.position.x, pose.position.y, pose.position.z));
+  }
+}
+
 
 void nbvInspection::RrtTree::iterate(int iterations)
 {
@@ -757,4 +786,5 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec sta
   return ret;
 }
 
+std::vector<tf::Vector3> nbvInspection::RrtTree::peer_vehicles_ = {  };
 #endif
