@@ -288,11 +288,13 @@ void nbvInspection::RrtTree::setPeerStateFromPoseMsg(
 
 std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
 {
-  for ( int i = 0; i <  peer_vehicles_.size() ; i++  ){
-    std::cout << num << "-th peer" << i << ": " << peer_vehicles_[i].x()
-              << ", " << peer_vehicles_[i].y() << ", " << peer_vehicles_[i].z() << std::endl;
-    std::cout << "peer_vehicles_.size() is " << peer_vehicles_.size() << std::endl;
-  }
+//  for ( int i = 0; i <  peer_vehicles_.size() ; i++  ){
+//    std::cout << num << "-th peer" << i << ": " << peer_vehicles_[i].x()
+//              << ", " << peer_vehicles_[i].y() << ", " << peer_vehicles_[i].z() << std::endl;
+//    std::cout << "peer_vehicles_.size() is " << peer_vehicles_.size() << std::endl;
+//  }
+  std::cout << "peer_vehicles: " << peer_vehicles_[0].x()
+            << ", " << peer_vehicles_[0].y() << ", " << peer_vehicles_[0].z() << std::endl;
   return peer_vehicles_;
 }
 
@@ -315,12 +317,11 @@ bool nbvInspection::RrtTree::biased_coin(double probability)
   return false;
 }
 
+//Functions below are about RRT
 void nbvInspection::RrtTree::iterate(int iterations)
 {
 // In this function a new configuration is sampled and added to the tree.
   StateVec newState;
-
-  const double CONTRAST = 1.0;
 
 // Sample over a sphere with the radius of the maximum diagonal of the exploration
 // space. Throw away samples outside the sampling region it exiting is not allowed
@@ -336,27 +337,8 @@ void nbvInspection::RrtTree::iterate(int iterations)
     }
     if (SQ(newState[0]) + SQ(newState[1]) + SQ(newState[2]) > pow(radius, 2.0))
       continue;
-
-    /////////////////////////////////////////////////////////////////////////////////
-    bool outOfSelfVoronoi = false;
-    for (int i = 1; i < peer_vehicles_.size(); i++) {
-      if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
-        continue;
-      if (SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1]) + SQ(peer_vehicles_[i].z() - newState[2]) <
-         SQ(peer_vehicles_[0].x() - newState[0]) + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]))
-        outOfSelfVoronoi = true;
-    }
-    if (outOfSelfVoronoi) {
-      if (biased_coin(CONTRAST))
-        continue;
-    }
-    else {
-      if (biased_coin(1 - CONTRAST))
-        continue;
-    }
-    /////////////////////////////////////////////////////////////////////////////////
-
     // Offset new state by root
+
     newState += rootNode_->state_;
     if (!params_.softBounds_) {
       if (newState.x() < params_.minX_ + 0.5 * params_.boundingBox_.x()) {
@@ -372,6 +354,27 @@ void nbvInspection::RrtTree::iterate(int iterations)
       } else if (newState.z() > params_.maxZ_ - 0.5 * params_.boundingBox_.z()) {
         continue;
       }
+
+      const double CONTRAST = 1.;
+      bool outOfSelfVoronoi = false;
+      double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
+                          + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
+      for (int i = 1; i < peer_vehicles_.size(); i++) {
+        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+          continue;
+        double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
+                           + SQ(peer_vehicles_[i].z() - newState[2]);
+        if (peer_dist_sq < my_dist_sq)
+          outOfSelfVoronoi = true;
+      }
+      if (outOfSelfVoronoi) {
+        if (biased_coin(CONTRAST))
+          continue;
+      }
+      else {
+        if (biased_coin(1 - CONTRAST))
+          continue;
+      }
     }
     solutionFound = true;
   }
@@ -382,14 +385,12 @@ void nbvInspection::RrtTree::iterate(int iterations)
     kd_res_free(nearest);
     return;
   }
-  nbvInspection::Node<StateVec> * newParent = (nbvInspection::Node<StateVec> *) kd_res_item_data(
-      nearest);
+  nbvInspection::Node<StateVec> * newParent = (nbvInspection::Node<StateVec> *) kd_res_item_data(nearest);
   kd_res_free(nearest);
 
 // Check for collision of new connection plus some overshoot distance.
   Eigen::Vector3d origin(newParent->state_[0], newParent->state_[1], newParent->state_[2]);
-  Eigen::Vector3d direction(newState[0] - origin[0], newState[1] - origin[1],
-                            newState[2] - origin[2]);
+  Eigen::Vector3d direction(newState[0] - origin[0], newState[1] - origin[1], newState[2] - origin[2]);
   if (direction.norm() > params_.extensionRange_) {
     direction = params_.extensionRange_ * direction.normalized();
   }

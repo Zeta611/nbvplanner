@@ -51,13 +51,10 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual void memorizeBestBranch();
   void publishNode(Node<StateVec> * node);
   double gain(StateVec state);
-  std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end,
-                                              std::string targetFrame);
+  std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame);
   virtual std::vector<tf::Vector3> printPeerPose(int num);
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
-
   bool biased_coin(double probability);
-
  protected:
   kdtree * kdTree_;
   std::stack<StateVec> history_;
