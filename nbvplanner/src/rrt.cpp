@@ -307,11 +307,20 @@ void nbvInspection::RrtTree::setPeerPoseInTree(const geometry_msgs::Pose& pose, 
   }
 }
 
+//biased_coin
+bool nbvInspection::RrtTree::biased_coin(double probability)
+{
+  if (((double) rand()) / ((double) RAND_MAX) < probability)
+    return true;
+  return false;
+}
 
 void nbvInspection::RrtTree::iterate(int iterations)
 {
 // In this function a new configuration is sampled and added to the tree.
   StateVec newState;
+
+  const double CONTRAST = 1.0;
 
 // Sample over a sphere with the radius of the maximum diagonal of the exploration
 // space. Throw away samples outside the sampling region it exiting is not allowed
@@ -327,6 +336,26 @@ void nbvInspection::RrtTree::iterate(int iterations)
     }
     if (SQ(newState[0]) + SQ(newState[1]) + SQ(newState[2]) > pow(radius, 2.0))
       continue;
+
+    /////////////////////////////////////////////////////////////////////////////////
+    bool outOfSelfVoronoi = false;
+    for (int i = 1; i < peer_vehicles_.size(); i++) {
+      if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+        continue;
+      if (SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1]) + SQ(peer_vehicles_[i].z() - newState[2]) <
+         SQ(peer_vehicles_[0].x() - newState[0]) + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]))
+        outOfSelfVoronoi = true;
+    }
+    if (outOfSelfVoronoi) {
+      if (biased_coin(CONTRAST))
+        continue;
+    }
+    else {
+      if (biased_coin(1 - CONTRAST))
+        continue;
+    }
+    /////////////////////////////////////////////////////////////////////////////////
+
     // Offset new state by root
     newState += rootNode_->state_;
     if (!params_.softBounds_) {
