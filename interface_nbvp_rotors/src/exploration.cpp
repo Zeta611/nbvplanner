@@ -78,6 +78,8 @@ int main(int argc, char** argv)
 
   // This is the initialization motion, necessary that the known free space allows the planning
   // of initial paths.
+  ///////////////////////////////////////////////
+  //here
   ROS_INFO("Starting the planner: Performing initialization motion");
   for (double i = 0; i <= 1.0; i = i + 0.1) {
     nh.param<double>("wp_x", trajectory_point.position_W.x(), 0.0);
@@ -143,4 +145,6 @@ int main(int argc, char** argv)
     }
     iteration++;
   }
+  ////////////////////////////////////////////////
+  //here
 }
