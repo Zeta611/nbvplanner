@@ -23,6 +23,7 @@
 #include <visualization_msgs/Marker.h>
 
 #include <nbvplanner/nbvp.h>
+#include <nbvplanner/rrt.h>
 
 // Convenience macro to get the absolute yaw difference
 #define ANGABS(x) (fmod(fabs(x),2.0*M_PI)<M_PI?fmod(fabs(x),2.0*M_PI):2.0*M_PI-fmod(fabs(x),2.0*M_PI))
@@ -41,6 +42,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   // Set up the topics and services
   params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
   peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
+//  peerRrtPub_ = nh_.advertise<nbvInspection::Node>("peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
   plannerService_ = nh_.advertiseService("nbvplanner",
                                          &nbvInspection::nbvPlanner<stateVec>::plannerCallback,
@@ -124,6 +126,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   // Subscribe to topic used for the collaborative collision avoidance (don't hit your peer).
   evadeClient_ = nh_.subscribe("/evasionSegment", 10, &nbvInspection::TreeBase<stateVec>::evade,
                                tree_);
+//  std::cout << nbvInspection::RrtTree::getRootNode() << std::endl;
   // RRT sharing
 //  peerRrtClient1_ = nh_.subscribe("peer_rrt_1", 10,
 //                                  &nbvInspection::RrtTree::setPeerStateFromPoseMsg1, tree_);
@@ -225,6 +228,11 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 
   std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
+  kdtree * kdtree_ = tree_->get_kdtree();
+  nbvInspection::Node<Eigen::Vector4d>* data = (nbvInspection::Node<Eigen::Vector4d>*)get_root(kdtree_)->data;
+  std::cout << "get_root(kdTree_)->data[0]: " << data->state_[0]
+            << "; get_root(kdTree_)->data[1]: " << data->state_[1]
+            << "; get_root(kdTree_)->data[2]: " << data->state_[2] << std::endl;
 
   for ( int i = 0; i <  peerPoses.size() ; i++  ){
     // Publish visualization of total exploration area

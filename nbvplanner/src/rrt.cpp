@@ -21,6 +21,7 @@
 #include <multiagent_collision_check/multiagent_collision_checker.h>
 #include <nbvplanner/rrt.h>
 #include <nbvplanner/tree.hpp>
+#include <nbvplanner/tree.h>
 #include <kdtree/kdtree.h>
 
 nbvInspection::RrtTree::RrtTree()
@@ -416,9 +417,10 @@ void nbvInspection::RrtTree::iterate(int iterations)
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
 //    Understanding of the kdtree class of kdtree.h
-//    std::cout << "get_root(kdTree_)->pos[0]: " << get_root(kdTree_)->pos[0]
-//              << "; get_root(kdTree_)->pos[1]: " << get_root(kdTree_)->pos[1]
-//              << "; get_root(kdTree_)->pos[2]: " << get_root(kdTree_)->pos[2] << std::endl;
+//    nbvInspection::Node<StateVec>* data = (nbvInspection::Node<StateVec>*)get_root(kdTree_)->data;
+//    std::cout << "get_root(kdTree_)->data[0]: " << data->state_[0]
+//              << "; get_root(kdTree_)->data[1]: " << data->state_[1]
+//              << "; get_root(kdTree_)->data[2]: " << data->state_[2] << std::endl;
 
 //    Understanding of the Node class of tree.h
 //    std::cout << "Root node is " << rootNode_ << std::endl;
@@ -830,5 +832,14 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec sta
   return ret;
 }
 
+//Node<StateVec> nbvInspection::RrtTree::getRootNode()
+//{
+//  return rootNode_;
+//}
+
+struct kdtree* nbvInspection::RrtTree::get_kdtree()
+{
+  return kdTree_;
+}
 std::vector<tf::Vector3> nbvInspection::RrtTree::peer_vehicles_ = {  };
 #endif

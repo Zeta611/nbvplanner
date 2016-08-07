@@ -24,6 +24,7 @@
 #include <octomap_world/octomap_manager.h>
 #include <multiagent_collision_check/Segment.h>
 #include <nbvplanner/mesh_structure.h>
+#include <kdtree/kdtree.h>
 
 namespace nbvInspection {
 
@@ -122,6 +123,8 @@ class TreeBase
   bool gainFound();
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   virtual std::vector<tf::Vector3> printPeerPose(int num) = 0;
+  virtual struct kdtree* get_kdtree() = 0;
+//  virtual kdtree * kdTree_;
 };
 }
 
