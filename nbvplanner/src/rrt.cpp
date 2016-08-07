@@ -423,7 +423,6 @@ void nbvInspection::RrtTree::iterate(int iterations)
     newNode->gain_ = newParent->gain_
         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
-
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
     // Display new node

@@ -131,7 +131,7 @@ int main(int argc, char** argv)
         // Add offset to account for constant tracking error of controller
         trajectory_point.position_W.z() = planSrv.response.path[i].position.z + 0.25;
         tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), yaw);
-          trajectory_point.setFromYaw(tf::getYaw(quat));
+        trajectory_point.setFromYaw(tf::getYaw(quat));
         mav_msgs::msgMultiDofJointTrajectoryPointFromEigen(trajectory_point, &trajectory_point_msg);
         samples_array.points.push_back(trajectory_point_msg);
         trajectory_pub.publish(samples_array);
