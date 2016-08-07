@@ -96,7 +96,6 @@ int main(int argc, char** argv)
     trajectory_pub.publish(samples_array);
     ros::Duration(1.0).sleep();
   }
-    std::cout <<
   trajectory_point.position_W.x() -= 0.5;
   trajectory_point.position_W.y() -= 0.5;
   samples_array.header.seq = n_seq;
@@ -110,7 +109,6 @@ int main(int argc, char** argv)
 
   // Start planning: The planner is called and the computed path sent to the controller.
   int iteration = 0;
-    std::cout << "move start" << std::endl;
   while (ros::ok()) {
     ROS_INFO_THROTTLE(0.5, "Planning iteration %i", iteration);
     nbvplanner::nbvp_srv planSrv;
@@ -129,13 +127,12 @@ int main(int argc, char** argv)
         samples_array.points.clear();
         tf::Pose pose;
         tf::poseMsgToTF(planSrv.response.path[i], pose);
-//        double yaw = tf::getYaw(pose.getRotation());
+        double yaw = tf::getYaw(pose.getRotation());
         trajectory_point.position_W.x() = planSrv.response.path[i].position.x;
         trajectory_point.position_W.y() = planSrv.response.path[i].position.y;
         // Add offset to account for constant tracking error of controller
         trajectory_point.position_W.z() = planSrv.response.path[i].position.z + 0.25;
-//        tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), yaw);
-          tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), -2 * M_PI * i / planSrv.response.path.size());
+        tf::Quaternion quat = tf::Quaternion(tf::Vector3(0.0, 0.0, 1.0), yaw);
           trajectory_point.setFromYaw(tf::getYaw(quat));
         mav_msgs::msgMultiDofJointTrajectoryPointFromEigen(trajectory_point, &trajectory_point_msg);
         samples_array.points.push_back(trajectory_point_msg);
@@ -147,7 +144,6 @@ int main(int argc, char** argv)
       ros::Duration(1.0).sleep();
     }
     iteration++;
-      std::cout << "move end" << std::endl;
 
   }
   ////////////////////////////////////////////////
