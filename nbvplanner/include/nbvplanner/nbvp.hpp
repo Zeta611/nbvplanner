@@ -230,9 +230,9 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
   kdtree * kdtree_ = tree_->get_kdtree();
   nbvInspection::Node<Eigen::Vector4d>* data = (nbvInspection::Node<Eigen::Vector4d>*)get_root(kdtree_)->data;
-  std::cout << "get_root(kdTree_)->data[0]: " << data->state_[0]
-            << "; get_root(kdTree_)->data[1]: " << data->state_[1]
-            << "; get_root(kdTree_)->data[2]: " << data->state_[2] << std::endl;
+  std::cout << "kdtree_->root->data->state_[0]: " << data->state_[0]
+            << "; kdtree_->root->data->state_[1]: " << data->state_[1]
+            << "; kdtree_->root->data->state_[2]: " << data->state_[2] << std::endl;
 
   for ( int i = 0; i <  peerPoses.size() ; i++  ){
     // Publish visualization of total exploration area
