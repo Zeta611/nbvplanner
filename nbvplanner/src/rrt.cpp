@@ -315,6 +315,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
 {
 // In this function a new configuration is sampled and added to the tree.
   StateVec newState;
+  const double CONTRAST = 0.95;
 
 // Sample over a sphere with the radius of the maximum diagonal of the exploration
 // space. Throw away samples outside the sampling region it exiting is not allowed

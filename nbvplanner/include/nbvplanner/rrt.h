@@ -45,6 +45,7 @@ class RrtTree : public TreeBae<Eigen::Vector4d>
   virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose, int n_peer);
   virtual void initialize();
   virtual void iterate(int iterations);
+  virtual bool biased_coin(double probability);
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
   virtual void clear();
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
