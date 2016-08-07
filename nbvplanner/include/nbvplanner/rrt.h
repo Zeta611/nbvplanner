@@ -56,7 +56,6 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
   bool biased_coin(double probability);
   virtual struct kdtree* get_kdtree();
-//  Node<StateVec> getRootNode();
  protected:
   kdtree * kdTree_;
   std::stack<StateVec> history_;

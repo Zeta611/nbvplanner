@@ -124,7 +124,6 @@ class TreeBase
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   virtual std::vector<tf::Vector3> printPeerPose(int num) = 0;
   virtual struct kdtree* get_kdtree() = 0;
-//  virtual kdtree * kdTree_;
 };
 }
 

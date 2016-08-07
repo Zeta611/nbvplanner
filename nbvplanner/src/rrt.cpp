@@ -311,7 +311,6 @@ void nbvInspection::RrtTree::setPeerPoseInTree(const geometry_msgs::Pose& pose, 
   }
 }
 
-//biased_coin
 bool nbvInspection::RrtTree::biased_coin(double probability)
 {
   if (((double) rand()) / ((double) RAND_MAX) < probability)
@@ -319,7 +318,6 @@ bool nbvInspection::RrtTree::biased_coin(double probability)
   return false;
 }
 
-//Functions below are about RRT
 void nbvInspection::RrtTree::iterate(int iterations)
 {
 // In this function a new configuration is sampled and added to the tree.
@@ -426,21 +424,6 @@ void nbvInspection::RrtTree::iterate(int iterations)
         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
-
-//    Understanding of the kdtree class of kdtree.h
-//    nbvInspection::Node<StateVec>* data = (nbvInspection::Node<StateVec>*)get_root(kdTree_)->data;
-//    std::cout << "get_root(kdTree_)->data[0]: " << data->state_[0]
-//              << "; get_root(kdTree_)->data[1]: " << data->state_[1]
-//              << "; get_root(kdTree_)->data[2]: " << data->state_[2] << std::endl;
-
-//    Understanding of the Node class of tree.h
-//    std::cout << "Root node is " << rootNode_ << std::endl;
-//    int num_children_root = rootNode_->children_.size();
-//    std::cout << "Number of children of root node is " << num_children_root << std::endl;
-//    for (int i = 0; i < num_children_root; i++) {
-//      std::cout << "Children node " << i+1 << " of root node is " << rootNode_->children_[i] << std::endl;
-//      std::cout << "Parent node of this is " << rootNode_->children_[i]->parent_ << std::endl;
-//    }
 
     // Display new node
     publishNode(newNode);
@@ -853,11 +836,6 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec sta
   }
   return ret;
 }
-
-//Node<StateVec> nbvInspection::RrtTree::getRootNode()
-//{
-//  return rootNode_;
-//}
 
 struct kdtree* nbvInspection::RrtTree::get_kdtree()
 {
