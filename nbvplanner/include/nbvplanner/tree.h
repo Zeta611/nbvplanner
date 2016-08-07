@@ -22,6 +22,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <octomap_world/octomap_manager.h>
+#include <octomap_world/octomap_world.h>
 #include <multiagent_collision_check/Segment.h>
 #include <multiagent_collision_check/Node.h>
 #include <multiagent_collision_check/Tree.h>

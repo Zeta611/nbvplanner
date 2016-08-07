@@ -27,7 +27,7 @@
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
-  kdTree_ = kd_create(4);
+  kdTree_ = kd_create(3);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -57,7 +57,7 @@ nbvInspection::RrtTree::RrtTree(mesh::StlMesh * mesh, volumetric_mapping::Octoma
 {
   mesh_ = mesh;
   manager_ = manager;
-  kdTree_ = kd_create(4);
+  kdTree_ = kd_create(3);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -348,26 +348,27 @@ void nbvInspection::RrtTree::iterate(int iterations)
       } else if (newState.z() > params_.maxZ_ - 0.5 * params_.boundingBox_.z()) {
         continue;
       }
-    }
-    const double CONTRAST = 0.95;
-    bool outOfSelfVoronoi = false;
-    double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
-                        + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
-    for (int i = 1; i < peer_vehicles_.size(); i++) {
-      if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
-        continue;
-      double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
-                         + SQ(peer_vehicles_[i].z() - newState[2]);
-      if (peer_dist_sq < my_dist_sq)
-        outOfSelfVoronoi = true;
-    }
-    if (outOfSelfVoronoi) {
-      if (biased_coin(CONTRAST))
-        continue;
-    }
-    else {
-      if (biased_coin(1 - CONTRAST))
-        continue;
+
+      const double CONTRAST = 1.;
+      bool outOfSelfVoronoi = false;
+      double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
+                          + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
+      for (int i = 1; i < peer_vehicles_.size(); i++) {
+        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+          continue;
+        double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
+                           + SQ(peer_vehicles_[i].z() - newState[2]);
+        if (peer_dist_sq < my_dist_sq)
+          outOfSelfVoronoi = true;
+      }
+      if (outOfSelfVoronoi) {
+        if (biased_coin(CONTRAST))
+          continue;
+      }
+      else {
+        if (biased_coin(1 - CONTRAST))
+          continue;
+      }
     }
     solutionFound = true;
   }
@@ -396,18 +397,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
           params_.boundingBox_)
       && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_)) {
     // Sample the new orientation
-    newState[3] = 0;
-      for (int i = 1; i < 20; i++){
-          double temp = 2.0 * M_PI * i / 20;
-          StateVec temp_state;
-          temp_state[0] = newState[0];
-          temp_state[1] = newState[1];
-          temp_state[2] = newState[2];
-          temp_state[3] = temp;
-          if (gain(newState) < gain(temp_state)){
-              newState[3] = temp;
-          }
-      }
+    newState[3] = 2.0 * M_PI * (((double) rand()) / ((double) RAND_MAX) - 0.5);
     // Create new node and insert into tree
     nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
     newNode->state_ = newState;
@@ -415,11 +405,11 @@ void nbvInspection::RrtTree::iterate(int iterations)
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
     newNode->gain_ = newParent->gain_
-        + gain(newNode->state_) * exp(-3 * params_.degressiveCoeff_ * newNode->distance_);
+        + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
-      // Display new node
+    // Display new node
     publishNode(newNode);
 
     // Update best IG and node if applicable
@@ -446,7 +436,7 @@ void nbvInspection::RrtTree::initialize()
     segments_[i]->clear();
   }
 // Initialize kd-tree with root node and prepare log file
-  kdTree_ = kd_create(4);
+  kdTree_ = kd_create(3);
 
   if (params_.log_) {
     if (fileTree_.is_open()) {
@@ -469,12 +459,9 @@ void nbvInspection::RrtTree::initialize()
   } else {
     rootNode_->state_ = root_;
   }
-    double buf[4];
-    for (int i =0; i<4; i++){buf[i]=rootNode_->state_[i];}
-  kd_insert(kdTree_, buf, rootNode_);
-    // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
-
-    iterationCount_++;
+  kd_insert3(kdTree_, rootNode_->state_.x(), rootNode_->state_.y(), rootNode_->state_.z(),
+             rootNode_);
+  iterationCount_++;
 
 // Insert all nodes of the remainder of the previous best branch, checking for collisions and
 // recomputing the gain.
@@ -511,18 +498,10 @@ void nbvInspection::RrtTree::initialize()
       newNode->parent_ = newParent;
       newNode->distance_ = newParent->distance_ + direction.norm();
       newParent->children_.push_back(newNode);
-        double cost;
-        if (newNode->distance_ >= params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_) {
-            cost = newNode->distance_;
-        }else{
-            cost = params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
-        }
       newNode->gain_ = newParent->gain_
           + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
-      for (int i = 0; i<4; i++){buf[i] = newState[i];}
-      kd_insert(kdTree_, buf, newNode);
-        // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
+      kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
       // Display new node
       publishNode(newNode);
@@ -692,17 +671,6 @@ void nbvInspection::RrtTree::memorizeBestBranch()
   bestBranchMemory_.clear();
   Node<StateVec> * current = bestNode_;
   while (current->parent_ && current->parent_->parent_) {
-    for (int i = 1; i < 20; i++){
-      double temp = 2.0 * M_PI * i / 20;
-      StateVec temp_state;
-      temp_state[0] = current->state_[0];
-      temp_state[1] = current->state_[1];
-      temp_state[2] = current->state_[2];
-      temp_state[3] = temp;
-      if (gain(current->state_) < gain(temp_state)){
-          current->state_[3] = temp;
-      }
-    }
     bestBranchMemory_.push_back(current->state_);
     current = current->parent_;
   }

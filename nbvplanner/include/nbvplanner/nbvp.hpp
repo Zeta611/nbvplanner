@@ -18,6 +18,7 @@
 #define NBVP_HPP_
 
 #include <fstream>
+#include <ctime>
 #include <eigen3/Eigen/Dense>
 
 #include <visualization_msgs/Marker.h>
@@ -205,6 +206,18 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
     if (tree_->getCounter() > params_.cuttoffIterations_) {
       ROS_INFO("No gain found, shutting down");
+
+      time_t end_time;
+      end_time = time(NULL);
+      char inputString[100];
+      std::ifstream inFile("Time.txt");
+      inFile.getline(inputString, 100);
+      std::cout << "Exploration finished, time elapsed: " << end_time - atoi(inputString) << std::endl;
+
+      double rate;
+      rate = manager_->explorationRate(1);
+      std::cout << "Exploration Rate: " << rate << std::endl;
+      inFile.close();
       ros::shutdown();
       return true;
     }
