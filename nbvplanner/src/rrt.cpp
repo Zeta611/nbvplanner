@@ -357,7 +357,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
         continue;
       }
     }
-    const double CONTRAST = 1.;
+    const double CONTRAST = 0.95;
     bool outOfSelfVoronoi = false;
     double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
                         + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
@@ -404,7 +404,18 @@ void nbvInspection::RrtTree::iterate(int iterations)
           params_.boundingBox_)
       && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_)) {
     // Sample the new orientation
-    newState[3] = 2.0 * M_PI * (((double) rand()) / ((double) RAND_MAX) - 0.5);
+    newState[3] = 0;
+      for (int i = 1; i < 20; i++){
+          double temp = 2.0 * M_PI * i / 20;
+          StateVec temp_state;
+          temp_state[0] = newState[0];
+          temp_state[1] = newState[1];
+          temp_state[2] = newState[2];
+          temp_state[3] = temp;
+          if (gain(newState) < gain(temp_state)){
+              newState[3] = temp;
+          }
+      }
     // Create new node and insert into tree
     nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
     newNode->state_ = newState;
@@ -691,6 +702,17 @@ void nbvInspection::RrtTree::memorizeBestBranch()
   Node<StateVec> * current = bestNode_;
   while (current->parent_ && current->parent_->parent_) {
     bestBranchMemory_.push_back(current->state_);
+    for (int i = 1; i < 20; i++){
+      double temp = 2.0 * M_PI * i / 20;
+      StateVec temp_state;
+      temp_state[0] = current->state_[0];
+      temp_state[1] = current->state_[1];
+      temp_state[2] = current->state_[2];
+      temp_state[3] = temp;
+      if (gain(current->state_) < gain(temp_state)){
+          current->state_[3] = temp;
+      }
+    }
     current = current->parent_;
   }
 }
