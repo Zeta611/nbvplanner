@@ -124,6 +124,13 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   // Subscribe to topic used for the collaborative collision avoidance (don't hit your peer).
   evadeClient_ = nh_.subscribe("/evasionSegment", 10, &nbvInspection::TreeBase<stateVec>::evade,
                                tree_);
+  // RRT sharing
+//  peerRrtClient1_ = nh_.subscribe("peer_rrt_1", 10,
+//                                  &nbvInspection::RrtTree::setPeerStateFromPoseMsg1, tree_);
+//  peerRrtClient2_ = nh_.subscribe("peer_rrt_2", 10,
+//                                  &nbvInspection::RrtTree::setPeerStateFromPoseMsg2, tree_);
+//  peerRrtClient3_ = nh_.subscribe("peer_rrt_3", 10,
+//                                  &nbvInspection::RrtTree::setPeerStateFromPoseMsg3, tree_);
   // Not yet ready. Needs a position message first.
   ready_ = false;
 }

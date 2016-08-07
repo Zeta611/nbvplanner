@@ -21,6 +21,7 @@
 #include <multiagent_collision_check/multiagent_collision_checker.h>
 #include <nbvplanner/rrt.h>
 #include <nbvplanner/tree.hpp>
+#include <kdtree/kdtree.h>
 
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
@@ -413,6 +414,20 @@ void nbvInspection::RrtTree::iterate(int iterations)
         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
+
+//    Understanding of the kdtree class of kdtree.h
+//    std::cout << "get_root(kdTree_)->pos[0]: " << get_root(kdTree_)->pos[0]
+//              << "; get_root(kdTree_)->pos[1]: " << get_root(kdTree_)->pos[1]
+//              << "; get_root(kdTree_)->pos[2]: " << get_root(kdTree_)->pos[2] << std::endl;
+
+//    Understanding of the Node class of tree.h
+//    std::cout << "Root node is " << rootNode_ << std::endl;
+//    int num_children_root = rootNode_->children_.size();
+//    std::cout << "Number of children of root node is " << num_children_root << std::endl;
+//    for (int i = 0; i < num_children_root; i++) {
+//      std::cout << "Children node " << i+1 << " of root node is " << rootNode_->children_[i] << std::endl;
+//      std::cout << "Parent node of this is " << rootNode_->children_[i]->parent_ << std::endl;
+//    }
 
     // Display new node
     publishNode(newNode);

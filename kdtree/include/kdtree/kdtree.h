@@ -31,9 +31,37 @@ OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-struct kdtree;
-struct kdres;
+struct kdhyperrect {
+    int dim;
+    double *min, *max;              /* minimum/maximum coords */
+};
 
+struct kdnode {
+    double *pos;
+    int dir;
+    void *data;
+
+    struct kdnode *left, *right;	/* negative/positive side */
+};
+
+struct res_node {
+    struct kdnode *item;
+    double dist_sq;
+    struct res_node *next;
+};
+
+struct kdtree {
+    int dim;
+    struct kdnode *root;
+    struct kdhyperrect *rect;
+    void (*destr)(void*);
+};
+
+struct kdres {
+    struct kdtree *tree;
+    struct res_node *rlist, *riter;
+    int size;
+};
 
 /* create a kd-tree for "k"-dimensional data */
 struct kdtree *kd_create(int k);
@@ -106,6 +134,7 @@ void *kd_res_item3f(struct kdres *set, float *x, float *y, float *z);
 /* equivalent to kd_res_item(set, 0) */
 void *kd_res_item_data(struct kdres *set);
 
+struct kdnode *get_root(struct kdtree *tree);
 
 #ifdef __cplusplus
 }
