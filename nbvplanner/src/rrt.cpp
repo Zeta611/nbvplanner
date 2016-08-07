@@ -354,28 +354,27 @@ void nbvInspection::RrtTree::iterate(int iterations)
       } else if (newState.z() > params_.maxZ_ - 0.5 * params_.boundingBox_.z()) {
         continue;
       }
-
-      const double CONTRAST = 1.;
-      bool outOfSelfVoronoi = false;
-      double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
-                          + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
-      for (int i = 1; i < peer_vehicles_.size(); i++) {
-        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
-          continue;
-        double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
-                           + SQ(peer_vehicles_[i].z() - newState[2]);
-        if (peer_dist_sq < my_dist_sq)
-          outOfSelfVoronoi = true;
-      }
-      if (outOfSelfVoronoi) {
-        if (biased_coin(CONTRAST))
-          continue;
-      }
-      else {
-        if (biased_coin(1 - CONTRAST))
-          continue;
-      }
     }
+  const double CONTRAST = 1.;
+  bool outOfSelfVoronoi = false;
+  double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
+                      + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
+  for (int i = 1; i < peer_vehicles_.size(); i++) {
+    if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+      continue;
+    double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
+                       + SQ(peer_vehicles_[i].z() - newState[2]);
+    if (peer_dist_sq < my_dist_sq)
+      outOfSelfVoronoi = true;
+  }
+  if (outOfSelfVoronoi) {
+    if (biased_coin(CONTRAST))
+      continue;
+  }
+  else {
+    if (biased_coin(1 - CONTRAST))
+      continue;
+  }
     solutionFound = true;
   }
 
