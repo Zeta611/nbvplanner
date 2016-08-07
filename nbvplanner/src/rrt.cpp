@@ -397,7 +397,19 @@ void nbvInspection::RrtTree::iterate(int iterations)
           params_.boundingBox_)
       && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_)) {
     // Sample the new orientation
-    newState[3] = 2.0 * M_PI * (((double) rand()) / ((double) RAND_MAX) - 0.5);
+//    newState[3] = 2.0 * M_PI * (((double) rand()) / ((double) RAND_MAX) - 0.5);
+      newState[3] = 0;
+      StateVec temp_state;
+      temp_state[0] = newState[0];
+      temp_state[1] = newState[1];
+      temp_state[2] = newState[2];
+      for (int i = 1; i < 20; i++){
+          double temp = 2 * M_PI * i / 20;
+          if (gain(newState) > gain(temp_state)){
+              newState[3] = temp;
+          }
+      }
+
     // Create new node and insert into tree
     nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
     newNode->state_ = newState;
