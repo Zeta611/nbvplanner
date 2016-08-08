@@ -25,6 +25,8 @@
 #include <nbvplanner/nbvp.h>
 #include <nbvplanner/rrt.h>
 
+#include "../../../cereal/include/cereal/archives/binary.hpp"
+
 // Convenience macro to get the absolute yaw difference
 #define ANGABS(x) (fmod(fabs(x),2.0*M_PI)<M_PI?fmod(fabs(x),2.0*M_PI):2.0*M_PI-fmod(fabs(x),2.0*M_PI))
 
@@ -233,6 +235,26 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   std::cout << "kdtree_->root->data->state_[0]: " << data->state_[0]
             << "; kdtree_->root->data->state_[1]: " << data->state_[1]
             << "; kdtree_->root->data->state_[2]: " << data->state_[2] << std::endl;
+
+  std::stringstream ss;
+  {
+    cereal::BinaryOutputArchive oarchive(ss);
+    oarchive(kdtree_->dim, kdtree_->root, kdtree_->rect, kdtree_->destr);
+  }
+
+  std::cout << "Binary:" << std::endl;
+  std::cout << ss << std::endl;
+
+  {
+    cereal::BinaryInputArchive iarchive(ss);
+    int dim;
+    struct kdnode *root;
+    struct kdhyperrect *rect;
+    void (*destr)(void*);
+    iarchive(dim, root, rect, destr);
+  }
+
+  std::cout << root->data->state_[0] << std::endl;
 
   for ( int i = 0; i <  peerPoses.size() ; i++  ){
     // Publish visualization of total exploration area

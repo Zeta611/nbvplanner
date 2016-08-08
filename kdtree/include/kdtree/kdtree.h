@@ -55,6 +55,12 @@ struct kdtree {
     struct kdnode *root;
     struct kdhyperrect *rect;
     void (*destr)(void*);
+
+    template<class Archive>
+    void serialize(Archive & archive)
+    {
+      archive(dim, root, rect, destr);
+    }
 };
 
 struct kdres {
