@@ -25,6 +25,7 @@
 #include <nav_msgs/Odometry.h>
 #include <octomap_world/octomap_manager.h>
 #include <multiagent_collision_check/Segment.h>
+#include <multiagent_collision_check/Rrt.h>
 #include <nbvplanner/nbvp_srv.h>
 #include <nbvplanner/mesh_structure.h>
 #include <nbvplanner/tree.hpp>
@@ -48,8 +49,10 @@ class nbvPlanner
   ros::Subscriber peerPosClient2_;
   ros::Subscriber peerPosClient3_;
   ros::Subscriber evadeClient_;
+  ros::Subscriber peerRrtClient_;
   ros::Publisher evadePub_;
   ros::Publisher peerPosPub_;
+  ros::Publisher peerRrtPub_;
   ros::ServiceServer plannerService_;
   ros::Subscriber pointcloud_sub_;
   ros::Subscriber pointcloud_sub_cam_up_;

@@ -684,7 +684,6 @@ void nbvInspection::RrtTree::memorizeBestBranch()
   bestBranchMemory_.clear();
   Node<StateVec> * current = bestNode_;
   while (current->parent_ && current->parent_->parent_) {
-    bestBranchMemory_.push_back(current->state_);
     for (int i = 1; i < 20; i++){
       double temp = 2.0 * M_PI * i / 20;
       StateVec temp_state;
@@ -696,6 +695,7 @@ void nbvInspection::RrtTree::memorizeBestBranch()
           current->state_[3] = temp;
       }
     }
+    bestBranchMemory_.push_back(current->state_);
     current = current->parent_;
   }
 }

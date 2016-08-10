@@ -23,6 +23,7 @@
 #include <nav_msgs/Odometry.h>
 #include <octomap_world/octomap_manager.h>
 #include <multiagent_collision_check/Segment.h>
+#include <multiagent_collision_check/Rrt.h>
 #include <nbvplanner/mesh_structure.h>
 #include <kdtree/kdtree.h>
 
@@ -112,6 +113,7 @@ class TreeBase
   void setPeerStateFromPoseMsg2(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void setPeerStateFromPoseMsg3(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void evade(const multiagent_collision_check::Segment& segmentMsg);
+  void addRrts(const multiagent_collision_check::Rrt& rrtMsg);
   virtual void iterate(int iterations) = 0;
   virtual void initialize() = 0;
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;

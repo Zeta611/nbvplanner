@@ -127,4 +127,22 @@ void nbvInspection::TreeBase<stateVec>::evade(const multiagent_collision_check::
   }
 }
 
+template<typename stateVec>
+void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Rrt& rrtMsg) {
+  std::cout << "Message triggered!" << std::endl;
+//  int i;
+//  for(i = 0; i < agentNames_.size(); i++) {
+//    if(agentNames_[i].compare(segmentMsg.header.frame_id) == 0) {
+//      break;
+//    }
+//  }
+//  if (i == agentNames_.size()) {
+//    agentNames_.push_back(segmentMsg.header.frame_id);
+//    segments_.push_back(new std::vector<Eigen::Vector3d>);
+//  }
+//  segments_[i]->clear();
+//  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = segmentMsg.poses.begin(); it != segmentMsg.poses.end(); it++) {
+//    segments_[i]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
+//  }
+}
 #endif

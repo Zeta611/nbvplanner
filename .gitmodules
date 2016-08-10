@@ -28,6 +28,3 @@
 [submodule "eigen_checks"]
 	path = eigen_checks
 	url = https://github.com/ethz-asl/eigen_checks
-[submodule "cereal"]
-	path = cereal
-	url = https://github.com/USCiLab/cereal
