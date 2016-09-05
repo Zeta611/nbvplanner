@@ -221,6 +221,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   multiagent_collision_check::Segment segment;
   segment.header.stamp = ros::Time::now();
   segment.header.frame_id = params_.navigationFrame_;
+//  std::cout << "I am " << segment.header.frame_id << std::endl;
   if (!res.path.empty()) {
     segment.poses.push_back(res.path.front());
     segment.poses.push_back(res.path.back());

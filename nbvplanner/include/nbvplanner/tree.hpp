@@ -130,6 +130,20 @@ void nbvInspection::TreeBase<stateVec>::evade(const multiagent_collision_check::
 template<typename stateVec>
 void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Rrt& rrtMsg) {
   std::cout << "Message triggered!" << std::endl;
+
+//  geometry_msgs::Pose temp;
+//  temp.position.x = 0;
+//  temp.position.y = 1;
+//  temp.position.z = 2;
+//  temp.orientation.w = 0;
+//  temp.orientation.x = 0;
+//  temp.orientation.y = 0;
+//  temp.orientation.z = 0;
+//  if (rrtMsg.rrts.size() <= 0)
+//    rrtMsg.rrts.push_back(temp);
+//  if (rrts_.size() <= 0)
+//    rrts_.push_back(Eigen::Vector3d(rrtMsg.rrts[0].position.x, rrtMsg.rrts[0].position.y, rrtMsg.rrts[0].position.z));
+
 //  int i;
 //  for(i = 0; i < agentNames_.size(); i++) {
 //    if(agentNames_[i].compare(segmentMsg.header.frame_id) == 0) {

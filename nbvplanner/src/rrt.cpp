@@ -297,6 +297,7 @@ std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
 //  }
   std::cout << "peer_vehicles: " << peer_vehicles_[0].x()
             << ", " << peer_vehicles_[0].y() << ", " << peer_vehicles_[0].z() << std::endl;
+  std::cout << "Message delivered!" << rrts_[0].x() << ", " << rrts_[0].y() << ", " << rrts_[0].z() << std::endl;
   return peer_vehicles_;
 }
 
@@ -507,8 +508,7 @@ void nbvInspection::RrtTree::initialize()
         == manager_->getLineStatusBoundingBox(
             origin, direction + origin + direction.normalized() * params_.dOvershoot_,
             params_.boundingBox_)
-        && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_,
-                                      segments_)) {
+        && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_)) {
       // Create new node and insert into tree
       nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
       newNode->state_ = newState;
