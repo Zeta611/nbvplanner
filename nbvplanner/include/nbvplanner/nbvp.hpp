@@ -105,8 +105,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
           mesh_ = new mesh::StlMesh(stlFile);
           mesh_->setResolution(params_.meshResolution_);
           mesh_->setOctomapManager(manager_);
-          mesh_->setCameraParams(params_.camPitch_, params_.camHorizontal_, params_.camVertical_,
-                                 params_.gainRange_);
+          mesh_->setCameraParams(params_.camPitch_, params_.camHorizontal_, params_.camVertical_, params_.gainRange_);
         } else {
           ROS_WARN("Unable to open STL file");
         }
@@ -228,10 +227,25 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   }
   evadePub_.publish(segment);
 
-  multiagent_collision_check::Rrt rrts;
-  rrts.header.stamp = ros::Time::now();
-  rrts.header.frame_id = params_.navigationFrame_;
-  peerRrtPub_.publish(rrts);
+  multiagent_collision_check::Rrt rrt;
+  rrt.header.stamp = ros::Time::now();
+  rrt.header.frame_id = params_.navigationFrame_;
+
+  geometry_msgs::Pose temp;
+  temp.position.x = 0;
+  temp.position.y = 1;
+  temp.position.z = 2;
+  temp.orientation.w = 0;
+  temp.orientation.x = 0;
+  temp.orientation.y = 0;
+  temp.orientation.z = 0;
+
+  if (rrt.rrt.size() <= 0) {
+    rrt.rrt.push_back(temp);
+    std::cout << "245" << std::endl;
+  }
+
+  peerRrtPub_.publish(rrt);
 
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 

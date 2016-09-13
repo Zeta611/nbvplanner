@@ -217,9 +217,9 @@ void nbvInspection::RrtTree::setStateFromOdometryMsg(
   // Update the inspected parts of the mesh using the current position
   if (ros::Time::now().toSec() - inspectionThrottleTime_[0] > params_.inspection_throttle_) {
     inspectionThrottleTime_[0] += params_.inspection_throttle_;
-      geometry_msgs::Pose poseTransformed;
-      tf::poseTFToMsg(transform * poseTF, poseTransformed);
-      setPeerPoseInTree(poseTransformed, 0);
+    geometry_msgs::Pose poseTransformed;
+    tf::poseTFToMsg(transform * poseTF, poseTransformed);
+    setPeerPoseInTree(poseTransformed, 0);
     if (mesh_) {
       geometry_msgs::Pose poseTransformed;
       tf::poseTFToMsg(transform * poseTF, poseTransformed);
@@ -297,8 +297,10 @@ std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
 //  }
   std::cout << "peer_vehicles: " << peer_vehicles_[0].x()
             << ", " << peer_vehicles_[0].y() << ", " << peer_vehicles_[0].z() << std::endl;
-  std::cout << "Message delivered!" << rrts_[0].x() << ", " << rrts_[0].y() << ", " << rrts_[0].z() << std::endl;
-  return peer_vehicles_;
+  if (rrts_.size() > 0) {
+    std::cout << "Message delivered!" << (*rrts_[0])[0].x() << ", " << (*rrts_[0])[0].y() << ", " << (*rrts_[0])[0].z() << std::endl;
+  }
+    return peer_vehicles_;
 }
 
 void nbvInspection::RrtTree::setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer)

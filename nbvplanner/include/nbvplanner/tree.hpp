@@ -128,9 +128,23 @@ void nbvInspection::TreeBase<stateVec>::evade(const multiagent_collision_check::
 }
 
 template<typename stateVec>
-void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Rrt& rrtMsg) {
+void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Rrt& rrtMsg) { // note that the type is const
   std::cout << "Message triggered!" << std::endl;
 
+  if (rrts_.size() != 3) {
+    for (int i = 0; i < 3; i++) {
+      rrts_.push_back(new std::vector<Eigen::Vector3d>);
+    }
+  }
+  check %= 3;
+  rrts_[check]->clear();
+  std::cout << "141" << std::endl;
+  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = rrtMsg.rrt.begin(); it != rrtMsg.rrt.end(); it++) {
+    std::cout << "143" << std::endl;
+    rrts_[check]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
+    std::cout << "145" << std::endl;
+  }
+  check ++;
 //  geometry_msgs::Pose temp;
 //  temp.position.x = 0;
 //  temp.position.y = 1;
@@ -139,24 +153,7 @@ void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check
 //  temp.orientation.x = 0;
 //  temp.orientation.y = 0;
 //  temp.orientation.z = 0;
-//  if (rrtMsg.rrts.size() <= 0)
-//    rrtMsg.rrts.push_back(temp);
-//  if (rrts_.size() <= 0)
-//    rrts_.push_back(Eigen::Vector3d(rrtMsg.rrts[0].position.x, rrtMsg.rrts[0].position.y, rrtMsg.rrts[0].position.z));
-
-//  int i;
-//  for(i = 0; i < agentNames_.size(); i++) {
-//    if(agentNames_[i].compare(segmentMsg.header.frame_id) == 0) {
-//      break;
-//    }
-//  }
-//  if (i == agentNames_.size()) {
-//    agentNames_.push_back(segmentMsg.header.frame_id);
-//    segments_.push_back(new std::vector<Eigen::Vector3d>);
-//  }
-//  segments_[i]->clear();
-//  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = segmentMsg.poses.begin(); it != segmentMsg.poses.end(); it++) {
-//    segments_[i]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
-//  }
+//  if (rrts_.size() <= 0) {
+//    rrts_.push_back(Eigen::Vector3d(temp.position.x, temp.position.y, temp.position.z));
 }
 #endif

@@ -1,2 +1,2 @@
 Header header
-geometry_msgs/Pose[] rrts
+geometry_msgs/Pose[] rrt

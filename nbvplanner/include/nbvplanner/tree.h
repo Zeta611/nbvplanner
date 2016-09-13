@@ -101,7 +101,8 @@ class TreeBase
   stateVec root_;
   stateVec exact_root_;
   std::vector<std::vector<Eigen::Vector3d>*> segments_;
-  std::vector<Eigen::Vector3d> rrts_;
+  std::vector<std::vector<Eigen::Vector3d>*> rrts_;
+  int check = 0;
   std::vector<std::string> agentNames_;
  public:
   TreeBase();
