@@ -298,9 +298,18 @@ std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
   std::cout << "peer_vehicles: " << peer_vehicles_[0].x()
             << ", " << peer_vehicles_[0].y() << ", " << peer_vehicles_[0].z() << std::endl;
   if (rrts_.size() > 0) {
-    std::cout << "Message delivered!" << (*rrts_[0])[0].x() << ", " << (*rrts_[0])[0].y() << ", " << (*rrts_[0])[0].z() << std::endl;
+    if ((*rrts_[0]).size() > 0)
+      std::cout << "Message delivered!" << (*rrts_[0])[0].x() << ", " << (*rrts_[0])[0].y() << ", " << (*rrts_[0])[0].z() << std::endl;
   }
-    return peer_vehicles_;
+  if (rrts_.size() > 1) {
+    if ((*rrts_[1]).size() > 0)
+      std::cout << (*rrts_[1])[0].x() << ", " << (*rrts_[1])[0].y() << ", " << (*rrts_[1])[0].z() << std::endl;
+  }
+  if (rrts_.size() > 2) {
+    if ((*rrts_[2]).size() > 0)
+      std::cout << (*rrts_[2])[0].x() << ", " << (*rrts_[2])[0].y() << ", " << (*rrts_[2])[0].z() << std::endl;
+  }
+  return peer_vehicles_;
 }
 
 void nbvInspection::RrtTree::setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer)
@@ -843,5 +852,6 @@ struct kdtree* nbvInspection::RrtTree::get_kdtree()
 {
   return kdTree_;
 }
+
 std::vector<tf::Vector3> nbvInspection::RrtTree::peer_vehicles_ = {  };
 #endif

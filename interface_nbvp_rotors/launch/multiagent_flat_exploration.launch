@@ -7,7 +7,7 @@
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find interface_nbvp_rotors)/worlds/flat.world" />
     <arg name="paused" value="true"/>
-    <arg name="gui" value="true"/>
+    <arg name="gui" value="false"/>
   </include>
 
   <include file="$(find interface_nbvp_rotors)/launch/mav_inspector.launch">

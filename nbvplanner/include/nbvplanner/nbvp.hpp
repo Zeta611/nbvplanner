@@ -43,7 +43,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   // Set up the topics and services
   params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
   peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
-  peerRrtPub_ = nh_.advertise<multiagent_collision_check::Rrt>("/peerRrts", 1000);
+  peerRrtPub_ = nh_.advertise<multiagent_collision_check::Tree>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
   plannerService_ = nh_.advertiseService("nbvplanner",
                                          &nbvInspection::nbvPlanner<stateVec>::plannerCallback,
@@ -227,36 +227,9 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   }
   evadePub_.publish(segment);
 
-  multiagent_collision_check::Rrt rrt;
-  rrt.header.stamp = ros::Time::now();
-  rrt.header.frame_id = params_.navigationFrame_;
-
-  geometry_msgs::Pose temp;
-  temp.position.x = 0;
-  temp.position.y = 1;
-  temp.position.z = 2;
-  temp.orientation.w = 0;
-  temp.orientation.x = 0;
-  temp.orientation.y = 0;
-  temp.orientation.z = 0;
-
-  if (rrt.rrt.size() <= 0) {
-    rrt.rrt.push_back(temp);
-    std::cout << "245" << std::endl;
-  }
-
-  peerRrtPub_.publish(rrt);
-
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 
   std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
-  kdtree * kdtree_ = tree_->get_kdtree();
-//  typedef Eigen::Vector4d stateVec;
-  nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)get_root(kdtree_)->data;
-  std::cout << "kdtree_->root->data->state_[0]: " << data->state_[0]
-            << "; kdtree_->root->data->state_[1]: " << data->state_[1]
-            << "; kdtree_->root->data->state_[2]: " << data->state_[2] << std::endl;
-
 
   for ( int i = 0; i <  peerPoses.size() ; i++  ){
     // Publish visualization of total exploration area
@@ -286,6 +259,33 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     p.color.a = 1.0;
     peerPosPub_.publish(p);
   }
+
+  kdtree * kdtree_ = tree_->get_kdtree();
+  nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)get_root(kdtree_)->data;
+  std::cout << "kdtree_->root->data->state_.x(): " << data->state_.x()
+            << "; kdtree_->root->data->state.y(): " << data->state_.y()
+            << "; kdtree_->root->data->state.z(): " << data->state_.z() << std::endl;
+
+  multiagent_collision_check::Rrt rrt;
+  rrt.header.stamp = ros::Time::now();
+  rrt.header.frame_id = params_.navigationFrame_;
+
+  std::vector<geometry_msgs::Pose> serial_data;
+  serialize(data, &serial_data);
+
+  rrt.rrt.clear();
+//  for (int i = 0; i < serial_data.size(); i++) {
+//    rrt.rrt.push_back(serial_data[i]);
+//  }
+
+  rrt.rrt.push_back(serial_data[0]);
+  peerRrtPub_.publish(rrt);
+
+  std::cout << "RRT: " << std::endl;
+  for (int i = 0; i < serial_data.size() || i < 10; i++) {
+    std::cout << i << "," << serial_data[i] <<std::endl;
+  }
+  std::cout << "END." << std::endl;
   return true;
 }
 
@@ -513,6 +513,43 @@ void nbvInspection::nbvPlanner<stateVec>::evasionCallback(
     const multiagent_collision_check::Segment& segmentMsg)
 {
   tree_->evade(segmentMsg);
+}
+
+template<typename stateVec>
+void nbvInspection::nbvPlanner<stateVec>::serialize(
+        nbvInspection::Node<stateVec> * root, std::vector<geometry_msgs::Pose> * serial_data)
+{
+  if (root == NULL)
+    return;
+
+  stateVec state = root->state_;
+  double gain = root->gain_;
+
+  geometry_msgs::Pose state_pose;
+  state_pose.position.x = state.x();
+  state_pose.position.y = state.y();
+  state_pose.position.z = state.z();
+  state_pose.orientation.w = 0;
+  state_pose.orientation.x = 0;
+  state_pose.orientation.y = 0;
+  state_pose.orientation.z = 0;
+
+  serial_data->push_back(state_pose);
+
+  std::vector<nbvInspection::Node<stateVec>*> children = root->children_;
+  for (int i = 0; i != children.size(); i++)
+    serialize(children[i], serial_data);
+
+  geometry_msgs::Pose marker_pose;
+  marker_pose.position.x = 0;
+  marker_pose.position.y = 0;
+  marker_pose.position.z = 0;
+  marker_pose.orientation.w = -1;
+  marker_pose.orientation.x = -1;
+  marker_pose.orientation.y = -1;
+  marker_pose.orientation.z = -1;
+
+  serial_data->push_back(marker_pose);
 }
 
 #endif // NBVP_HPP_

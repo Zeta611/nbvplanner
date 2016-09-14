@@ -138,22 +138,9 @@ void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check
   }
   check %= 3;
   rrts_[check]->clear();
-  std::cout << "141" << std::endl;
   for(typename std::vector<geometry_msgs::Pose>::const_iterator it = rrtMsg.rrt.begin(); it != rrtMsg.rrt.end(); it++) {
-    std::cout << "143" << std::endl;
     rrts_[check]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
-    std::cout << "145" << std::endl;
   }
   check ++;
-//  geometry_msgs::Pose temp;
-//  temp.position.x = 0;
-//  temp.position.y = 1;
-//  temp.position.z = 2;
-//  temp.orientation.w = 0;
-//  temp.orientation.x = 0;
-//  temp.orientation.y = 0;
-//  temp.orientation.z = 0;
-//  if (rrts_.size() <= 0) {
-//    rrts_.push_back(Eigen::Vector3d(temp.position.x, temp.position.y, temp.position.z));
 }
 #endif
