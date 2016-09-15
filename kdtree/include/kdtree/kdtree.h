@@ -53,6 +53,7 @@ struct res_node {
 struct kdtree {
     int dim;
     struct kdnode *root;
+    struct kdnode *prev_root;
     struct kdhyperrect *rect;
     void (*destr)(void*);
 };
@@ -135,6 +136,7 @@ void *kd_res_item3f(struct kdres *set, float *x, float *y, float *z);
 void *kd_res_item_data(struct kdres *set);
 
 struct kdnode *get_root(struct kdtree *tree);
+struct kdnode *get_prev_root(struct kdtree *tree);
 
 #ifdef __cplusplus
 }

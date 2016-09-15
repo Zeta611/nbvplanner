@@ -297,18 +297,34 @@ std::vector<tf::Vector3> nbvInspection::RrtTree::printPeerPose(int num)
 //  }
   std::cout << "peer_vehicles: " << peer_vehicles_[0].x()
             << ", " << peer_vehicles_[0].y() << ", " << peer_vehicles_[0].z() << std::endl;
-  if (rrts_.size() > 0) {
-    if ((*rrts_[0]).size() > 0)
-      std::cout << "Message delivered!" << (*rrts_[0])[0].x() << ", " << (*rrts_[0])[0].y() << ", " << (*rrts_[0])[0].z() << std::endl;
-  }
-  if (rrts_.size() > 1) {
-    if ((*rrts_[1]).size() > 0)
-      std::cout << (*rrts_[1])[0].x() << ", " << (*rrts_[1])[0].y() << ", " << (*rrts_[1])[0].z() << std::endl;
-  }
-  if (rrts_.size() > 2) {
-    if ((*rrts_[2]).size() > 0)
-      std::cout << (*rrts_[2])[0].x() << ", " << (*rrts_[2])[0].y() << ", " << (*rrts_[2])[0].z() << std::endl;
-  }
+//  if (rrts_.size() > 0) {
+//    if ((*rrts_[0]).size() > 0) {
+//      std::cout << "Message delivered!" << std::endl;
+//      std::cout << 1 << std::endl;
+//      for (int i = 0; i < (*rrts_[0]).size(); i++) {
+//        std::cout << (*rrts_[0])[i][0] << ", " << (*rrts_[0])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
+//                  << (*rrts_[0])[i][3] << std::endl;
+//      }
+//    }
+//  }
+//  if (rrts_.size() > 1) {
+//    if ((*rrts_[1]).size() > 0) {
+//      std::cout << 2 << std::endl;
+//      for (int i = 0; i < (*rrts_[1]).size(); i++) {
+//        std::cout << (*rrts_[1])[i][0] << ", " << (*rrts_[1])[i][1] << ", " << (*rrts_[1])[i][2] << "; "
+//                  << (*rrts_[1])[i][3] << std::endl;
+//      }
+//    }
+//  }
+//  if (rrts_.size() > 2) {
+//    if ((*rrts_[2]).size() > 0) {
+//      std::cout << 3 << std::endl;
+//      for (int i = 0; i < (*rrts_[2]).size(); i++) {
+//        std::cout << (*rrts_[2])[i][0] << ", " << (*rrts_[2])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
+//                  << (*rrts_[0])[i][3] << std::endl;
+//      }
+//    }
+//  }
   return peer_vehicles_;
 }
 
@@ -571,6 +587,9 @@ void nbvInspection::RrtTree::initialize()
   p.lifetime = ros::Duration(0.0);
   p.frame_locked = false;
   params_.inspectionPath_.publish(p);
+
+  for (int i = 0; i < 3; i++)
+    prev_root_state_[i] = 0;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)

@@ -127,20 +127,61 @@ void nbvInspection::TreeBase<stateVec>::evade(const multiagent_collision_check::
   }
 }
 
-template<typename stateVec>
-void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Rrt& rrtMsg) { // note that the type is const
-  std::cout << "Message triggered!" << std::endl;
-
-  if (rrts_.size() != 3) {
-    for (int i = 0; i < 3; i++) {
-      rrts_.push_back(new std::vector<Eigen::Vector3d>);
-    }
-  }
-  check %= 3;
-  rrts_[check]->clear();
-  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = rrtMsg.rrt.begin(); it != rrtMsg.rrt.end(); it++) {
-    rrts_[check]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
-  }
-  check ++;
-}
+//template<typename stateVec>
+//void nbvInspection::TreeBase<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) { // note that the type is const
+//  std::cout << "Message triggered!" << std::endl;
+//
+//  if (rrts_.size() != 3) {
+//    for (int i = 0; i < 3; i++) {
+//    }
+//  }
+//
+//  std::cout << 1 << std::endl;
+//
+//  for (int i = 0; i < 3; i++) {
+//    if (rrts_[i]->size() <= 0) {
+//      std::cout << 2 << std::endl;
+//      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin();
+//           it != rrtMsg.tree.end(); it++) {
+//        if (it->isNode)
+//          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
+//        else
+//          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
+//      }
+//      std::cout << 3 << std::endl;
+//      return;
+//    }
+//    std::cout << 4 << std::endl;
+//    bool flag = (*rrts_[i])[0][0] == cur_state[0] && (*rrts_[i])[0][1] == cur_state[1] && (*rrts_[i])[0][2] == cur_state[2];
+//    for (int j = 0; j < 3; j++)
+//      std::cout << "state! " << (*rrts_[i])[0][j] << " and " << cur_state[j] << std::endl;
+//    std::cout << 5 << std::endl;
+//    if (flag) {
+//      std::cout << 6 << std::endl;
+//      rrts_[i]->clear();
+//      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin();
+//           it != rrtMsg.tree.end(); it++) {
+//        if (it->isNode)
+//          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
+//        else
+//          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
+//      }
+//      std::cout << 7 << std::endl;
+//      return;
+//    }
+//    std::cout << 8 << std::endl;
+//  }
+//  std::cout << 9 << std::endl;
+//
+//
+////  check %= 3;
+////  rrts_[check]->clear();
+////  for(typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin(); it != rrtMsg.tree.end(); it++) {
+////    if (it->isNode)
+////      rrts_[check]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
+////    else
+////      rrts_[check]->push_back(Eigen::Vector4d(0, 0, 0, -1));
+////  }
+////  check ++;
+//}
 #endif
