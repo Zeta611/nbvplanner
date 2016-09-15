@@ -79,7 +79,6 @@ struct kdtree *kd_create(int k)
 
 	tree->dim = k;
 	tree->root = 0;
-	tree->prev_root = 0;
 	tree->destr = 0;
 	tree->rect = 0;
 
@@ -112,7 +111,6 @@ void kd_clear(struct kdtree *tree)
 {
 	clear_rec(tree->root, tree->destr);
 	tree->root = 0;
-	tree->prev_root = 0;
 
 	if (tree->rect) {
 		hyperrect_free(tree->rect);
@@ -730,12 +728,4 @@ static void clear_results(struct kdres *rset)
 struct kdnode *get_root(struct kdtree *tree)
 {
     return tree->root;
-}
-
-struct kdnode *get_prev_root(struct kdtree *tree)
-{
-	if (tree->prev_root)
-    return tree->prev_root;
-  else
-		return NULL;
 }

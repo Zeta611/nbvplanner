@@ -52,7 +52,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   void publishNode(Node<StateVec> * node);
   double gain(StateVec state);
   std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame);
-  virtual std::vector<tf::Vector3> printPeerPose(int num);
+  virtual std::vector<tf::Vector3> getPeerPose(int num);
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
   bool biased_coin(double probability);
   virtual struct kdtree* get_kdtree();

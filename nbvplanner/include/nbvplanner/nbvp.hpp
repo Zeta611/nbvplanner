@@ -183,16 +183,10 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   Eigen::Vector3d prev_state;
   if (cnt > 0) {
     nbvInspection::Node<stateVec>* prev_data = (nbvInspection::Node<stateVec>*)tree_->get_kdtree()->root->data;
-    for (int i = 0; i < 3; i++) {
-//      std::cout << "Stranger check: " << prev_data->state_[i] << std::endl;
+    for (int i = 0; i < 3; i++)
       prev_state[i] = prev_data->state_[i];
-    }
     tree_->clear();
     tree_->initialize();
-//    for (int i = 0; i < 3; i++) {
-//      tree_->prev_root_state_[i] = prev_state[i];
-////      std::cout << "Strange check: " << tree_->prev_root_state_[i] << " and " << prev_state[i] << std::endl;
-//    }
   }
   else {
     tree_->clear();
@@ -226,7 +220,6 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   multiagent_collision_check::Segment segment;
   segment.header.stamp = ros::Time::now();
   segment.header.frame_id = params_.navigationFrame_;
-//  std::cout << "I am " << segment.header.frame_id << std::endl;
   if (!res.path.empty()) {
     segment.poses.push_back(res.path.front());
     segment.poses.push_back(res.path.back());
@@ -235,7 +228,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 
-  std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
+  std::vector<tf::Vector3> peerPoses = tree_->getPeerPose(loopCount);
 
   for ( int i = 0; i <  peerPoses.size() ; i++  ){
     // Publish visualization of total exploration area
@@ -265,24 +258,13 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     p.color.a = 1.0;
     peerPosPub_.publish(p);
   }
-  nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)get_root(tree_->get_kdtree())->data;
-//  std::cout << "kdtree_->root->data->state_.x(): " << data->state_.x()
-//            << "; kdtree_->root->data->state.y(): " << data->state_.y()
-//            << "; kdtree_->root->data->state.z(): " << data->state_.z() << std::endl;
-
-//  Eigen::Vector3d cur_state;
-//  for (int i = 0; i < 3; i++) {
-//    cur_state[i] = data->state_[i];
-//    std::cout << "state?? " << cur_state[j] << std::endl;
-//  }
-
+  nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)tree_->get_kdtree()->root->data;
   multiagent_collision_check::Tree rrt;
-
   std::vector<multiagent_collision_check::Node> serial_data;
   serialize(data, &serial_data);
-
   rrt.tree.clear();
 
+//  This is a root node of a previous RRT, which is needed to appropriately update rrts_
   multiagent_collision_check::Node serial_prev_data;
   serial_prev_data.isNode = false;
   serial_prev_data.state.x = prev_state.x();
@@ -294,11 +276,12 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     rrt.tree.push_back(serial_data[i]);
   peerRrtPub_.publish(rrt);
 
+//  print RRTs
+  int N = 1;
   if (rrts_.size() > 0) {
     if ((*rrts_[0]).size() > 0) {
-//      std::cout << "Message delivered!" << std::endl;
       std::cout << "RRT1" << std::endl;
-      for (int i = 0; i < (*rrts_[0]).size() && i < 1; i++) {
+      for (int i = 0; i < (*rrts_[0]).size() && i < N; i++) {
         std::cout << (*rrts_[0])[i][0] << ", " << (*rrts_[0])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
                   << (*rrts_[0])[i][3] << std::endl;
       }
@@ -307,7 +290,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   if (rrts_.size() > 1) {
     if ((*rrts_[1]).size() > 0) {
       std::cout << "RRT2" << std::endl;
-      for (int i = 0; i < (*rrts_[1]).size() && i < 1; i++) {
+      for (int i = 0; i < (*rrts_[1]).size() && i < N; i++) {
         std::cout << (*rrts_[1])[i][0] << ", " << (*rrts_[1])[i][1] << ", " << (*rrts_[1])[i][2] << "; "
                   << (*rrts_[1])[i][3] << std::endl;
       }
@@ -316,18 +299,12 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   if (rrts_.size() > 2) {
     if ((*rrts_[2]).size() > 0) {
       std::cout << "RRT3" << std::endl;
-      for (int i = 0; i < (*rrts_[2]).size() && i < 1; i++) {
+      for (int i = 0; i < (*rrts_[2]).size() && i < N; i++) {
         std::cout << (*rrts_[2])[i][0] << ", " << (*rrts_[2])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
                   << (*rrts_[0])[i][3] << std::endl;
       }
     }
   }
-
-//  std::cout << "RRT: " << std::endl;
-//  for (int i = 0; i < serial_data.size() || i < 10; i++) {
-//    std::cout << i << "," << serial_data[i] <<std::endl;
-//  }
-//  std::cout << "END." << std::endl;
   return true;
 }
 
@@ -559,11 +536,9 @@ void nbvInspection::nbvPlanner<stateVec>::evasionCallback(
 
 template<typename stateVec>
 void nbvInspection::nbvPlanner<stateVec>::serialize(
-        nbvInspection::Node<stateVec> * root, std::vector<multiagent_collision_check::Node> * serial_data)
-{
+        nbvInspection::Node<stateVec> * root, std::vector<multiagent_collision_check::Node> * serial_data) {
   if (root == NULL)
     return;
-
   stateVec state = root->state_;
   double gain = root->gain_;
 
@@ -581,25 +556,18 @@ void nbvInspection::nbvPlanner<stateVec>::serialize(
 
   multiagent_collision_check::Node marker;
   marker.isNode = false;
-
   serial_data->push_back(marker);
 }
 
 template<typename stateVec>
 void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) {
-//  std::cout << "Message triggered!" << std::endl;
-
   if (rrts_.size() != 3) {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
       rrts_.push_back(new std::vector<Eigen::Vector4d>);
-    }
   }
-
-//  std::cout << 1 << std::endl;
 
   for (int i = 0; i < 3; i++) {
     if (rrts_[i]->size() <= 0) {
-//      std::cout << 2 << std::endl;
       for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
            it != rrtMsg.tree.end(); it++) {
         if (it->isNode)
@@ -609,23 +577,10 @@ void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_che
       }
       return;
     }
+
     bool flag;
-//    Vector3d prev_state;
-//    for (int j = 0; j < 3; j++) {
-//      prev_state[j] = tree_->prev_root_state_[j];
-//    }
     flag = (*rrts_[i])[0][0] == rrtMsg.tree[0].state.x && (*rrts_[i])[0][1] == rrtMsg.tree[0].state.y && (*rrts_[i])[0][2] == rrtMsg.tree[0].state.z;
-//    for (int j = 0; j < 3; j++) {
-//      std::cout << "STATES current rrt root: " << (*rrts_[i])[0][j] << "; previous root: " << prev_state[j];
-//      if (j == 0)
-//        std::cout << "; current msg root: " << rrtMsg.tree[0].state.x << std::endl;
-//      else if (j == 1)
-//        std::cout << "; current msg root: " << rrtMsg.tree[0].state.y << std::endl;
-//      else
-//        std::cout << "; current msg root: " << rrtMsg.tree[0].state.z << std::endl;
-//    }
     if (flag) {
-//      std::cout << 3 << std::endl;
       rrts_[i]->clear();
       for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1; it != rrtMsg.tree.end(); it++) {
         if (it->isNode)
@@ -635,18 +590,6 @@ void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_che
       }
       return;
     }
-
-
   }
-
-//  check %= 3;
-//  rrts_[check]->clear();
-//  for(typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin(); it != rrtMsg.tree.end(); it++) {
-//    if (it->isNode)
-//      rrts_[check]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
-//    else
-//      rrts_[check]->push_back(Eigen::Vector4d(0, 0, 0, -1));
-//  }
-//  check ++;
 }
 #endif // NBVP_HPP_

@@ -102,7 +102,6 @@ class TreeBase
   stateVec root_;
   stateVec exact_root_;
   std::vector<std::vector<Eigen::Vector3d>*> segments_;
-//  std::vector<std::vector<Eigen::Vector4d>*> rrts_;
   int check = 0;
   std::vector<std::string> agentNames_;
  public:
@@ -116,7 +115,6 @@ class TreeBase
   void setPeerStateFromPoseMsg2(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void setPeerStateFromPoseMsg3(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void evade(const multiagent_collision_check::Segment& segmentMsg);
-//  void addRrts(const multiagent_collision_check::Tree& rrtMsg);
   virtual void iterate(int iterations) = 0;
   virtual void initialize() = 0;
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
@@ -127,9 +125,8 @@ class TreeBase
   int getCounter();
   bool gainFound();
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
-  virtual std::vector<tf::Vector3> printPeerPose(int num) = 0;
+  virtual std::vector<tf::Vector3> getPeerPose(int num) = 0;
   virtual struct kdtree* get_kdtree() = 0;
-//  Eigen::Vector3d prev_root_state_;
 };
 }
 
