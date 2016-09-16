@@ -80,6 +80,7 @@ class nbvPlanner
   void insertPointcloudWithTfCamDown(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   void evasionCallback(const multiagent_collision_check::Segment& segmentMsg);
   void serialize(nbvInspection::Node<stateVec> * root, std::vector<multiagent_collision_check::Node> * serial_data);
+  int deserialize(nbvInspection::Node<stateVec> * &root, std::vector<Eigen::Vector4d> * serial_data, int * num);
   void addRrts(const multiagent_collision_check::Tree& rrtMsg);
   std::vector<std::vector<Eigen::Vector4d>*> rrts_;
   int cnt = 0;

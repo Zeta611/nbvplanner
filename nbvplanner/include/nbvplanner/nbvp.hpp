@@ -277,11 +277,11 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   peerRrtPub_.publish(rrt);
 
 //  print RRTs
-  int N = 1;
+  int N = 2;
   if (rrts_.size() > 0) {
     if ((*rrts_[0]).size() > 0) {
       std::cout << "RRT1" << std::endl;
-      for (int i = 0; i < (*rrts_[0]).size() && i < N; i++) {
+      for (int i = 1; i < (*rrts_[0]).size() && i < N; i++) {
         std::cout << (*rrts_[0])[i][0] << ", " << (*rrts_[0])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
                   << (*rrts_[0])[i][3] << std::endl;
       }
@@ -290,7 +290,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   if (rrts_.size() > 1) {
     if ((*rrts_[1]).size() > 0) {
       std::cout << "RRT2" << std::endl;
-      for (int i = 0; i < (*rrts_[1]).size() && i < N; i++) {
+      for (int i = 1; i < (*rrts_[1]).size() && i < N; i++) {
         std::cout << (*rrts_[1])[i][0] << ", " << (*rrts_[1])[i][1] << ", " << (*rrts_[1])[i][2] << "; "
                   << (*rrts_[1])[i][3] << std::endl;
       }
@@ -299,11 +299,26 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   if (rrts_.size() > 2) {
     if ((*rrts_[2]).size() > 0) {
       std::cout << "RRT3" << std::endl;
-      for (int i = 0; i < (*rrts_[2]).size() && i < N; i++) {
+      for (int i = 1; i < (*rrts_[2]).size() && i < N; i++) {
         std::cout << (*rrts_[2])[i][0] << ", " << (*rrts_[2])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
                   << (*rrts_[0])[i][3] << std::endl;
       }
     }
+  }
+//  print a deserialized RRT
+  if (rrts_.size() > 0) {
+    nbvInspection::Node<stateVec> * deserialized_root = new nbvInspection::Node<stateVec>;
+    int num = 1;
+    deserialize(deserialized_root, rrts_[0], &num);
+    std::cout << "Deserialization" << std::endl;
+    std::cout << "root" << std::endl;
+    for (int i = 0; i < 3; i++)
+      std::cout << deserialized_root->state_[i] << " ";
+    std::cout << std::endl;
+    std::cout << "children_[0]" << std::endl;
+    for (int i = 0; i < 3; i++)
+      std::cout << deserialized_root->children_[0]->state_[i] << " ";
+    std::cout << std::endl;
   }
   return true;
 }
@@ -338,7 +353,8 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No camera vertical opening specified. Looking for %s. Default is 60deg.",
              (ns + "/system/camera/vertical").c_str());
   }
-  if(params_.camPitch_.size() != params_.camHorizontal_.size() ||params_.camPitch_.size() != params_.camVertical_.size() ){
+  if (params_.camPitch_.size() != params_.camHorizontal_.size()
+      || params_.camPitch_.size() != params_.camVertical_.size()) {
     ROS_WARN("Specified camera fields of view unclear: Not all parameter vectors have same length! Setting to default.");
     params_.camPitch_.clear();
     params_.camPitch_ = {15.0};
@@ -560,6 +576,32 @@ void nbvInspection::nbvPlanner<stateVec>::serialize(
 }
 
 template<typename stateVec>
+int nbvInspection::nbvPlanner<stateVec>::deserialize(nbvInspection::Node<stateVec> * &root,
+                                                     std::vector<Eigen::Vector4d> * serial_data, int * num) {
+  if (*num >= serial_data->size())
+    return 1;
+  if ((*serial_data)[*num][3] == -1)
+    return 1;
+
+
+  for (int i = 0; i < 3; i++)
+    root->state_[i] = (*serial_data)[*num][i];
+  root->gain_ = (*serial_data)[*num][3];
+
+  for (int i = 0; i < 10; i++) {
+    nbvInspection::Node<stateVec> * temp = new nbvInspection::Node<stateVec>;
+    root->children_.push_back(temp);
+  }
+
+  for (int i = 0; i < 10; i++) {
+    (*num)++;
+    if (deserialize(root->children_[i], serial_data, num))
+      break;
+  }
+  return 0;
+}
+
+template<typename stateVec>
 void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) {
   if (rrts_.size() != 3) {
     for (int i = 0; i < 3; i++)
@@ -579,10 +621,12 @@ void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_che
     }
 
     bool flag;
-    flag = (*rrts_[i])[0][0] == rrtMsg.tree[0].state.x && (*rrts_[i])[0][1] == rrtMsg.tree[0].state.y && (*rrts_[i])[0][2] == rrtMsg.tree[0].state.z;
+    flag = (*rrts_[i])[0][0] == rrtMsg.tree[0].state.x
+           && (*rrts_[i])[0][1] == rrtMsg.tree[0].state.y && (*rrts_[i])[0][2] == rrtMsg.tree[0].state.z;
     if (flag) {
       rrts_[i]->clear();
-      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1; it != rrtMsg.tree.end(); it++) {
+      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
+           it != rrtMsg.tree.end(); it++) {
         if (it->isNode)
           rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
         else
