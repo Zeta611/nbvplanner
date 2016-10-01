@@ -27,7 +27,7 @@
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -57,7 +57,7 @@ nbvInspection::RrtTree::RrtTree(mesh::StlMesh * mesh, volumetric_mapping::Octoma
 {
   mesh_ = mesh;
   manager_ = manager;
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -414,11 +414,11 @@ void nbvInspection::RrtTree::iterate(int iterations)
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
     newNode->gain_ = newParent->gain_
-        + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
+        + gain(newNode->state_) * exp(-3 * params_.degressiveCoeff_ * newNode->distance_);
 
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
-    // Display new node
+      // Display new node
     publishNode(newNode);
 
     // Update best IG and node if applicable
@@ -445,7 +445,7 @@ void nbvInspection::RrtTree::initialize()
     segments_[i]->clear();
   }
 // Initialize kd-tree with root node and prepare log file
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
 
   if (params_.log_) {
     if (fileTree_.is_open()) {
@@ -468,9 +468,12 @@ void nbvInspection::RrtTree::initialize()
   } else {
     rootNode_->state_ = root_;
   }
-  kd_insert3(kdTree_, rootNode_->state_.x(), rootNode_->state_.y(), rootNode_->state_.z(),
-             rootNode_);
-  iterationCount_++;
+    double buf[4];
+    for (int i =0; i<4; i++){buf[i]=rootNode_->state_[i];}
+  kd_insert(kdTree_, buf, rootNode_);
+    // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
+
+    iterationCount_++;
 
 // Insert all nodes of the remainder of the previous best branch, checking for collisions and
 // recomputing the gain.
@@ -507,10 +510,18 @@ void nbvInspection::RrtTree::initialize()
       newNode->parent_ = newParent;
       newNode->distance_ = newParent->distance_ + direction.norm();
       newParent->children_.push_back(newNode);
+        double cost;
+        if (newNode->distance_ >= params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_) {
+            cost = newNode->distance_;
+        }else{
+            cost = params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
+        }
       newNode->gain_ = newParent->gain_
           + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
-      kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
+      for (int i = 0; i<4; i++){buf[i] = newState[i];}
+      kd_insert(kdTree_, buf, newNode);
+        // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
 
       // Display new node
       publishNode(newNode);
