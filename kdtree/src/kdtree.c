@@ -254,7 +254,27 @@ int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data)
 	return kd_insert(tree, buf, data);
 }
 
-static int find_nearest(struct kdnode *node, const double *pos, double range, struct res_node *list, int ordered, int dim)
+int kd_insert4(struct kdtree *tree, double x, double y, double z, double yaw, void *data)
+{
+    double buf[4];
+    buf[0] = x;
+    buf[1] = y;
+    buf[2] = z;
+    buf[3] = yaw;
+    return kd_insert(tree, buf, data);
+}
+
+int kd_insert4f(struct kdtree *tree, float x, float y, float z, float yaw, void *data)
+{
+    double buf[4];
+    buf[0] = x;
+    buf[1] = y;
+    buf[2] = z;
+    buf[3] = yaw;
+    return kd_insert(tree, buf, data);
+}
+
+static int find_nearest(struct kdnode *node, const double *pos, double range, struct res_node *list, int ordered)
 {
 	double dist_sq, dx;
 	int i, ret, added_res = 0;
@@ -262,7 +282,7 @@ static int find_nearest(struct kdnode *node, const double *pos, double range, st
 	if(!node) return 0;
 
 	dist_sq = 0;
-	for(i=0; i<dim; i++) {
+	for(i=0; i<3; i++) {
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
 	if(dist_sq <= SQ(range)) {
@@ -274,10 +294,10 @@ static int find_nearest(struct kdnode *node, const double *pos, double range, st
 
 	dx = pos[node->dir] - node->pos[node->dir];
 
-	ret = find_nearest(dx <= 0.0 ? node->left : node->right, pos, range, list, ordered, dim);
+	ret = find_nearest(dx <= 0.0 ? node->left : node->right, pos, range, list, ordered);
 	if(ret >= 0 && fabs(dx) < range) {
 		added_res += ret;
-		ret = find_nearest(dx <= 0.0 ? node->right : node->left, pos, range, list, ordered, dim);
+		ret = find_nearest(dx <= 0.0 ? node->right : node->left, pos, range, list, ordered);
 	}
 	if(ret == -1) {
 		return -1;
@@ -324,7 +344,7 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	/* Check the distance of the point at the current node, compare it
 	 * with our best so far */
 	dist_sq = 0;
-	for(i=0; i < rect->dim; i++) {
+	for(i=0; i < 3; i++) {
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
 	if (dist_sq < *result_dist_sq) {
@@ -379,7 +399,7 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	/* Our first guesstimate is the root node */
 	result = kd->root;
 	dist_sq = 0;
-	for (i = 0; i < kd->dim; i++)
+	for (i = 0; i < 3; i++)
 		dist_sq += SQ(result->pos[i] - pos[i]);
 
 	/* Search for the nearest neighbour recursively */
@@ -455,6 +475,26 @@ struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
 	return kd_nearest(tree, pos);
 }
 
+struct kdres *kd_nearest4(struct kdtree *tree, double x, double y, double z, double yaw)
+{
+    double pos[4];
+    pos[0] = x;
+    pos[1] = y;
+    pos[2] = z;
+    pos[3] = yaw;
+    return kd_nearest(tree, pos);
+}
+
+struct kdres *kd_nearest4f(struct kdtree *tree, float x, float y, float z, float yaw)
+{
+    double pos[4];
+    pos[0] = x;
+    pos[1] = y;
+    pos[2] = z;
+    pos[3] = yaw;
+    return kd_nearest(tree, pos);
+}
+
 struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double range)
 {
 	int ret;
@@ -470,7 +510,7 @@ struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double rang
 	rset->rlist->next = 0;
 	rset->tree = kd;
 
-	if((ret = find_nearest(kd->root, pos, range, rset->rlist, 0, kd->dim)) == -1) {
+	if((ret = find_nearest(kd->root, pos, range, rset->rlist, 0)) == -1) {
 		kd_res_free(rset);
 		return 0;
 	}
@@ -530,6 +570,27 @@ struct kdres *kd_nearest_range3f(struct kdtree *tree, float x, float y, float z,
 	buf[2] = z;
 	return kd_nearest_range(tree, buf, range);
 }
+
+struct kdres *kd_nearest_range4(struct kdtree *tree, double x, double y, double z, double yaw, double range)
+{
+    double buf[4];
+    buf[0] = x;
+    buf[1] = y;
+    buf[2] = z;
+    buf[3] = yaw;
+    return kd_nearest_range(tree, buf, range);
+}
+
+struct kdres *kd_nearest_range4f(struct kdtree *tree, float x, float y, float z, float yaw, float range)
+{
+    double buf[4];
+    buf[0] = x;
+    buf[1] = y;
+    buf[2] = z;
+    buf[3] = yaw;
+    return kd_nearest_range(tree, buf, range);
+}
+
 
 void kd_res_free(struct kdres *rset)
 {
@@ -602,6 +663,29 @@ void *kd_res_item3f(struct kdres *rset, float *x, float *y, float *z)
 		if(*z) *z = rset->riter->item->pos[2];
 	}
 	return 0;
+}
+
+void *kd_res_item4(struct kdres *rset, double *x, double *y, double *z, double *yaw)
+{
+    if(rset->riter) {
+        if(*x) *x = rset->riter->item->pos[0];
+        if(*y) *y = rset->riter->item->pos[1];
+        if(*z) *z = rset->riter->item->pos[2];
+        if(*yaw) *yaw = rset->riter->item->pos[3];
+    }
+    return 0;
+}
+
+void *kd_res_item4f(struct kdres *rset, float *x, float *y, float *z, float *yaw)
+{
+    if(rset->riter) {
+        if(*x) *x = rset->riter->item->pos[0];
+        if(*y) *y = rset->riter->item->pos[1];
+        if(*z) *z = rset->riter->item->pos[2];
+        if(*yaw) *yaw = rset->riter->item->pos[3];
+
+    }
+    return 0;
 }
 
 void *kd_res_item_data(struct kdres *set)
