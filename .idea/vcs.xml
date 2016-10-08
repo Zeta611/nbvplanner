@@ -2,5 +2,14 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/catkin_simple" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/eigen_catkin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/gflags_catkin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/glog_catkin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mav_comm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/minkindr" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/minkindr_ros" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/rotors" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/volumetric_mapping" vcs="Git" />
   </component>
 </project>

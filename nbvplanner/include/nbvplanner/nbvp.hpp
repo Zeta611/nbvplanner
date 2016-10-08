@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2015 Andreas Bircher, ASL, ETH Zurich, Switzerland
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -207,17 +207,11 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     if (tree_->getCounter() > params_.cuttoffIterations_) {
       ROS_INFO("No gain found, shutting down");
 
-      time_t end_time;
-      end_time = time(NULL);
-      char inputString[100];
-      std::ifstream inFile("Time.txt");
-      inFile.getline(inputString, 100);
-      std::cout << "Exploration finished, time elapsed: " << end_time - atoi(inputString) << std::endl;
+      std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
 
       double rate;
       rate = manager_->explorationRate(1);
       std::cout << "Exploration Rate: " << rate << std::endl;
-      inFile.close();
       ros::shutdown();
       return true;
     }
@@ -337,6 +331,17 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
       std::cout << deserialized_root->children_[0]->state_[i] << " ";
     std::cout << std::endl;
   }
+// For experiment
+  double rate;
+  rate = manager_->explorationRate(1);
+  std::cout << "Exploration Rate: " << rate*100 << "%" << std::endl;
+
+  std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
+
+//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+
+  outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+  outFile.close();
   return true;
 }
 
