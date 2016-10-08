@@ -30,6 +30,7 @@
 #include <nbvplanner/mesh_structure.h>
 #include <nbvplanner/tree.hpp>
 #include <nbvplanner/rrt.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #define SQ(x) ((x)*(x))
 #define SQRT2 0.70711
@@ -84,6 +85,9 @@ class nbvPlanner
   void addRrts(const multiagent_collision_check::Tree& rrtMsg);
   std::vector<std::vector<Eigen::Vector4d>*> rrts_;
   int cnt = 0;
+
+  ros::Publisher pub_path;
+  bool VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res);
 };
 
 }

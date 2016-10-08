@@ -1,6 +1,3 @@
-interface_nbvp_rotors/.idea/*
-nbvplanner/.idea/*
 nbvplanner/data/*
-interface_nbvp_rotors/.idea/*
-kdtree/.idea/*
-multiagent_collision_check/.idea/*
+*/.idea/*
+*~

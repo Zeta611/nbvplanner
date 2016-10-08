@@ -32,7 +32,7 @@
 
 namespace nbvInspection {
 
-class RrtTree : public TreeBase<Eigen::Vector4d>
+class RrtTree : public TreeBae<Eigen::Vector4d>
 {
  public:
   typedef Eigen::Vector4d StateVec;
@@ -56,7 +56,14 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
   bool biased_coin(double probability);
   virtual struct kdtree* get_kdtree();
- protected:
+
+  virtual void VRRT_iterate(int iterations);
+  virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);
+  virtual void VRRT_SmoothPath(std::vector<nbvInspection::Node<StateVec>*>& states);
+  virtual void VRRT_initialize();
+  virtual Eigen::Vector4d getRoot();
+
+protected:
   kdtree * kdTree_;
   std::stack<StateVec> history_;
   std::vector<StateVec> bestBranchMemory_;
@@ -67,6 +74,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   std::fstream fileResponse_;
   std::string logFilePath_;
   std::vector<double> inspectionThrottleTime_;
+
 private:
   static std::vector<tf::Vector3> peer_vehicles_;
 };

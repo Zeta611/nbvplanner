@@ -127,6 +127,11 @@ class TreeBase
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   virtual std::vector<tf::Vector3> getPeerPose(int num) = 0;
   virtual struct kdtree* get_kdtree() = 0;
+
+  virtual void VRRT_iterate(int iterations) = 0;
+  virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
+  virtual void VRRT_initialize() = 0 ;
+  virtual Eigen::Vector4d getRoot() = 0;
 };
 }
 

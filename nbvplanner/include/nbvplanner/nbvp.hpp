@@ -45,7 +45,11 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
   peerRrtPub_ = nh_.advertise<multiagent_collision_check::Tree>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
-  plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
+  // plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
+  plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback, this);
+
+  pub_path = nh_.advertise<sensor_msgs::PointCloud2>("path", 1000);
+
   posClient_ = nh_.subscribe("pose", 10, &nbvInspection::nbvPlanner<stateVec>::posCallback, this);
   odomClient_ = nh_.subscribe("odometry", 10, &nbvInspection::nbvPlanner<stateVec>::odomCallback, this);
 
@@ -601,6 +605,105 @@ int nbvInspection::nbvPlanner<stateVec>::deserialize(nbvInspection::Node<stateVe
   return 0;
 }
 
+/*---------------- Volumetric RRT Method (Start) ----------------------*/
+template<typename stateVec>
+bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res)
+{
+
+  ros::Time computationTime = ros::Time::now();
+  // Check that planner is ready to compute path.
+  if (!ros::ok()) {
+    ROS_INFO_THROTTLE(1, "Exploration finished. Not planning any further moves.");
+    return true;
+  }
+
+  if (!ready_) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: Planner not ready!");
+    return true;
+  }
+  if (manager_ == NULL) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: No octomap available!");
+    return true;
+  }
+  if (manager_->getMapSize().norm() <= 0.0) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: Octomap is empty!");
+    return true;
+  }
+  res.path.clear();
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr points(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  Eigen::Vector4d r1 = tree_->getRoot();
+  // Clear old tree and reinitialize.
+  tree_->clear();
+  tree_->VRRT_initialize();
+
+  Eigen::Vector4d r2 = tree_->getRoot();
+
+  vector_t path;
+  // Iterate the tree construction method.
+  int loopCount = 0;
+  while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
+    if (tree_->getCounter() > params_.cuttoffIterations_) {
+      ROS_INFO("No gain found, shutting down");
+      ros::shutdown();
+      return true;
+    }
+    if (loopCount > 1000 * (tree_->getCounter() + 1)) {
+      ROS_INFO_THROTTLE(1, "Exceeding maximum failed iterations, return to previous point!");
+      res.path = tree_->getPathBackToPrevious(req.header.frame_id);
+      return true;
+    }
+    tree_->VRRT_iterate(1);
+    loopCount++;
+  }
+  // Extract the best edge.
+  res.path = tree_->VRRT_getBestEdge(req.header.frame_id);
+
+  for(int i =0; i<res.path.size(); i++ ){
+    geometry_msgs::Pose ret = res.path[i];
+    pcl::PointXYZRGB point;
+    point.x = ret.position.x;
+    point.y = ret.position.y;
+    point.z = ret.position.z;
+    point.r = 200; point.g = 200; point.b = 200;
+    points->push_back(point);
+  }
+
+  pcl::PointXYZRGB point1;
+  point1.x = r1[0];
+  point1.y = r1[1];
+  point1.z = r1[2];
+  point1.r = 200; point1.g = 0; point1.b = 0;
+  points->push_back(point1);
+
+  pcl::PointXYZRGB point2;
+  point2.x = r2[0];
+  point2.y = r2[1];
+  point2.z = r2[2];
+  point2.r = 0; point2.g = 200; point2.b = 0;
+  points->push_back(point2);
+
+  // Plot points
+  sensor_msgs::PointCloud2 pc2;
+  pcl::toROSMsg(*points, pc2);
+  pc2.header.frame_id = "world";
+  pub_path.publish(pc2);
+
+  tree_->memorizeBestBranch();
+  // Publish path to block for other agents (multi agent only).
+  multiagent_collision_check::Segment segment;
+  segment.header.stamp = ros::Time::now();
+  segment.header.frame_id = params_.navigationFrame_;
+  if (!res.path.empty()) {
+    segment.poses.push_back(res.path.front());
+    segment.poses.push_back(res.path.back());
+  }
+  evadePub_.publish(segment);
+  ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
+  return true;
+}
+
+/*---------------- Volumetric RRT Method (End) ----------------------*/
 template<typename stateVec>
 void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) {
   if (rrts_.size() != 3) {
