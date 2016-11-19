@@ -563,7 +563,7 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string
     while (current->parent_ != rootNode_ && current->parent_ != NULL) {
       current = current->parent_;
     }
-    ret = samplePath(current->parent_->state_, current->state_, targetFrame);
+    ret = samplePath(current->parent_->state_, current->state_, targetFrame, ret);
     history_.push(current->parent_->state_);
     exact_root_ = current->state_;
   }
@@ -669,7 +669,7 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getPathBackToPrevious(
   if (history_.empty()) {
     return ret;
   }
-  ret = samplePath(root_, history_.top(), targetFrame);
+  ret = samplePath(root_, history_.top(), targetFrame, ret);
   exact_root_ = history_.top();
   history_.pop();
   return ret;
@@ -785,9 +785,10 @@ void nbvInspection::RrtTree::publishNode(Node<StateVec> * node)
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::samplePath(StateVec start, StateVec end,
-                                                                    std::string targetFrame)
+                                                                    std::string targetFrame,
+                                                                    std::vector<geometry_msgs::Pose> ret)
 {
-  std::vector<geometry_msgs::Pose> ret;
+  // std::vector<geometry_msgs::Pose> ret;
   static tf::TransformListener listener;
   tf::StampedTransform transform;
   try {
@@ -946,10 +947,11 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::VRRT_getBestEdge(std::s
   for(std::vector<nbvInspection::Node<StateVec>*>::reverse_iterator iter = states_reverse.rbegin(); iter != states_reverse.rend(); iter++){
     states.push_back(*iter);
   }
+
   VRRT_SmoothPath(states);
 
   for(std::vector<nbvInspection::Node<StateVec>*>::iterator iter = states.begin(); iter != states.end()-1; iter++){
-    ret = samplePath((*iter)->state_, (*(iter+1))->state_, targetFrame);
+    ret = samplePath((*iter)->state_, (*(iter+1))->state_, targetFrame, ret);
     history_.push((*iter)->state_);
   }
 
