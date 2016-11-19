@@ -105,6 +105,7 @@ class TreeBase
   std::vector<std::vector<Eigen::Vector3d>*> segments_;
   int check = 0;
   std::vector<std::string> agentNames_;
+  std::vector<Node<stateVec>> leafNode;
  public:
   TreeBase();
   TreeBase(mesh::StlMesh * mesh, volumetric_mapping::OctomapManager * manager);
