@@ -285,6 +285,10 @@ static int find_nearest(struct kdnode *node, const double *pos, double range, st
 	for(i=0; i<3; i++) {
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
+    double dyaw = (node->pos[3]? node->pos[3] : node->pos[3] + 2*3.141592) - (pos[3]? pos[3] : pos[3] + 2*3.141592);
+    //Use an arbitrary constant
+    dist_sq -= 0.5 * dyaw;
+
 	if(dist_sq <= SQ(range)) {
 		if(rlist_insert(list, node, ordered ? dist_sq : -1.0) == -1) {
 			return -1;
@@ -347,6 +351,10 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	for(i=0; i < 3; i++) {
 		dist_sq += SQ(node->pos[i] - pos[i]);
 	}
+    double dyaw = (node->pos[3]? node->pos[3] : node->pos[3] + 2*3.141592) - (pos[3]? pos[3] : pos[3] + 2*3.141592);
+    //Use an arbitrary constant
+    dist_sq -= 0,5 * dyaw;
+
 	if (dist_sq < *result_dist_sq) {
 		*result = node;
 		*result_dist_sq = dist_sq;
@@ -401,6 +409,9 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	dist_sq = 0;
 	for (i = 0; i < 3; i++)
 		dist_sq += SQ(result->pos[i] - pos[i]);
+    double dyaw = (result->pos[3]? result->pos[3] : result->pos[3] + 2*3.141592) - (pos[3]? pos[3] : pos[3] + 2*3.141592);
+    //Use an arbitrary constant
+    dist_sq -= 0.5 * dyaw;
 
 	/* Search for the nearest neighbour recursively */
 	kd_nearest_i(kd->root, pos, &result, &dist_sq, rect);
