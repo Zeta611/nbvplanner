@@ -459,6 +459,12 @@ void nbvInspection::RrtTree::iterate(int iterations)
     
       // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
 
+    //double buf[4];
+      //for (int i = 0; i<4; i++){
+          //buf[i] = newState[i];
+      //}
+    //kd_insert(kdTree_, buf , newNode);
+      // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
       // Display new node
     publishNode(newNode);
     rootNode_->allNode.push_back(newNode);
