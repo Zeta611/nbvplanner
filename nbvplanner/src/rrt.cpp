@@ -24,6 +24,8 @@
 #include <nbvplanner/tree.h>
 #include <kdtree/kdtree.h>
 
+typedef Eigen::Vector4d StateVec;
+
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
@@ -408,6 +410,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
               newState[3] = temp;
           }
       }
+
     // Create new node and insert into tree
     nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
     newNode->state_ = newState;
@@ -426,6 +429,18 @@ void nbvInspection::RrtTree::iterate(int iterations)
 
       // Display new node
     publishNode(newNode);
+    rootNode_->allNode.push_back(newNode);
+
+    if (newNode->parent_->parent_ == NULL) { //new direction
+        newNode->dirNum_ = newParent->children_.size()-1;
+    } else {
+        newNode->dirNum_ = newParent->dirNum_;
+    }
+
+    newNode->isLeaf = true;
+    if (newParent->isLeaf){
+        newParent->isLeaf = false;
+    }
 
     // Update best IG and node if applicable
     if (newNode->gain_ > bestGain_) {
@@ -465,8 +480,15 @@ void nbvInspection::RrtTree::initialize()
   rootNode_->distance_ = 0.0;
   rootNode_->gain_ = params_.zero_gain_;
   rootNode_->parent_ = NULL;
+  rootNode_->isLeaf = false;
+  rootNode_->dirNum_ = 0;
 
-  if (params_.exact_root_) {
+  std::vector<Node<StateVec> *> v;
+  rootNode_->allNode = v;
+  rootNode_->leafNode = v;
+  rootNode_->allNode.push_back(rootNode_);
+
+    if (params_.exact_root_) {
     if (iterationCount_ <= 1) {
       exact_root_ = root_;
     }
@@ -529,8 +551,15 @@ void nbvInspection::RrtTree::initialize()
       kd_insert(kdTree_, buf, newNode);
         // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
 
+      newNode->dirNum_ = 0;
       // Display new node
       publishNode(newNode);
+      rootNode_->allNode.push_back(newNode);
+
+      newNode->isLeaf = true;
+      if (newParent->isLeaf){
+          newParent->isLeaf = false;
+      }
 
       // Update best IG and node if applicable
       if (newNode->gain_ > bestGain_) {
@@ -569,6 +598,22 @@ void nbvInspection::RrtTree::initialize()
   p.lifetime = ros::Duration(0.0);
   p.frame_locked = false;
   params_.inspectionPath_.publish(p);
+}
+
+void nbvInspection::RrtTree::getLeafNode(int dummy)
+{
+    int n = rootNode_->allNode.size();
+    for (int i=0; i<n; i++){
+        if (rootNode_->allNode[i]->isLeaf) {
+            rootNode_->leafNode.push_back(rootNode_->allNode[i]);
+        }
+    }
+}
+
+std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
+{
+    std::vector<std::vector<Node<StateVec> *>> v;
+    return
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
@@ -1023,7 +1068,6 @@ void nbvInspection::RrtTree::VRRT_initialize()
   rootNode_->distance_ = 0.0;
   rootNode_->gain_ = params_.zero_gain_;
   rootNode_->parent_ = NULL;
-
 
   if (params_.exact_root_) {
     if (iterationCount_ <= 1) {

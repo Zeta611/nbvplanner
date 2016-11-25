@@ -87,6 +87,12 @@ class Node
   std::vector<Node*> children_;
   double gain_;
   double distance_;
+  int dirNum_;
+  bool isLeaf;
+
+  std::vector<Node<stateVec> *> leafNode;  //for RootNode only
+  std::vector<Node<stateVec> *> allNode;   //for RootNode only
+
 };
 
 template<typename stateVec>
@@ -105,7 +111,7 @@ class TreeBase
   std::vector<std::vector<Eigen::Vector3d>*> segments_;
   int check = 0;
   std::vector<std::string> agentNames_;
-  std::vector<Node<stateVec>> leafNode;
+
  public:
   TreeBase();
   TreeBase(mesh::StlMesh * mesh, volumetric_mapping::OctomapManager * manager);
@@ -119,6 +125,9 @@ class TreeBase
   void evade(const multiagent_collision_check::Segment& segmentMsg);
   virtual void iterate(int iterations) = 0;
   virtual void initialize() = 0;
+
+  virtual void getLeafNode(int dummy) = 0;
+
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
   virtual void clear() = 0;
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame) = 0;

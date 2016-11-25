@@ -34,7 +34,7 @@
 #include <octomap_world/octomap_manager.h>
 #include <octomap_world/octomap_world.h>
 
-int main(int argc, char** argv}
+int main(int argc, char** argv)
 {
   ros::init(argc, argv, "exploration");
   ros::NodeHandle nh;

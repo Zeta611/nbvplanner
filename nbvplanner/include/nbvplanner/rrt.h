@@ -32,7 +32,7 @@
 
 namespace nbvInspection {
 
-class RrtTree : public TreeBae<Eigen::Vector4d>
+class RrtTree : public TreeBase<Eigen::Vector4d>
 {
  public:
   typedef Eigen::Vector4d StateVec;
@@ -45,7 +45,6 @@ class RrtTree : public TreeBae<Eigen::Vector4d>
   virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose, int n_peer);
   virtual void initialize();
   virtual void iterate(int iterations);
-  virtual bool biased_coin(double probability);
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
   virtual void clear();
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
@@ -57,6 +56,9 @@ class RrtTree : public TreeBae<Eigen::Vector4d>
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
   bool biased_coin(double probability);
   virtual struct kdtree* get_kdtree();
+
+  void getLeafNode(int dummy);
+  std::vector<Node<StateVec> *> getCandidates();
 
   virtual void VRRT_iterate(int iterations);
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);
