@@ -45,6 +45,7 @@ struct Params
   double gainRange_;
   double degressiveCoeff_;
   double zero_gain_;
+  double cuCoeff_;
 
   double v_max_;
   double dyaw_max_;
@@ -73,6 +74,8 @@ struct Params
   double log_throttle_;
   double pcl_throttle_;
   double inspection_throttle_;
+
+  int explr_mode_;
 };
 
 template<typename stateVec>

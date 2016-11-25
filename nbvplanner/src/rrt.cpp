@@ -348,27 +348,38 @@ void nbvInspection::RrtTree::iterate(int iterations)
         continue;
       }
     }
-    const double CONTRAST = 0.95;
-    bool outOfSelfVoronoi = false;
-    double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
-                        + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
-    for (int i = 1; i < peer_vehicles_.size(); i++) {
-      if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
-        continue;
-      double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
-                         + SQ(peer_vehicles_[i].z() - newState[2]);
-      if (peer_dist_sq < my_dist_sq)
-        outOfSelfVoronoi = true;
+    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
+    if (params_.explr_mode_==1) { // use of VBF
+      std::cout << "VBF coordination mode..." << std::endl;
+      const double CONTRAST = 0.95;
+      bool outOfSelfVoronoi = false;
+      double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
+                          + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
+      for (int i = 1; i < peer_vehicles_.size(); i++) {
+        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+          continue;
+        double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
+                              + SQ(peer_vehicles_[i].z() - newState[2]);
+        if (peer_dist_sq < my_dist_sq)
+          outOfSelfVoronoi = true;
+      }
+      if (outOfSelfVoronoi) {
+        if (biased_coin(CONTRAST))
+          continue;
+      } else {
+        if (biased_coin(1 - CONTRAST))
+          continue;
+      }
+      solutionFound = true;
+    } else {
+      if (params_.explr_mode_==0) { // no coordination
+        std::cout << "No coordination mode..." << std::endl;
+        solutionFound=true;
+      } else if (params_.explr_mode_==2) { // cost-utility
+        std::cout << "Cost-utility coordination mode..." << std::endl;
+        solutionFound = true;
+      }
     }
-    if (outOfSelfVoronoi) {
-      if (biased_coin(CONTRAST))
-        continue;
-    }
-    else {
-      if (biased_coin(1 - CONTRAST))
-        continue;
-    }
-    solutionFound = true;
   }
 
 // Find nearest neighbour
@@ -413,9 +424,26 @@ void nbvInspection::RrtTree::iterate(int iterations)
     newNode->parent_ = newParent;
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
-    newNode->gain_ = newParent->gain_
-        + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
+    if (params_.explr_mode_==2) { // cost-utility
+      double others_f = 0;
 
+      // TODO: Using target cells of other robots, implement a cost utility method
+//      for (int i = 1; i < peer_vehicles_.size(); i++) {
+//        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+//          continue;
+//        if (peer_dist_sq < my_dist_sq)
+//          outOfSelfVoronoi = true;
+//      }
+
+
+
+//      newNode->gain_ = newParent->gain_
+//                       + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_)
+//                       - params_.cuCoeff_;
+    } else { // use of VBF / no coordination
+      newNode->gain_ = newParent->gain_
+                       + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
+    }
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
     // Display new node
@@ -876,7 +904,37 @@ void nbvInspection::RrtTree::VRRT_iterate(int iterations)
         continue;
       }
     }
-    solutionFound = true;
+    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
+    if (params_.explr_mode_==0) { // without coordination
+      std::cout << "No coordination mode..." << std::endl;
+      solutionFound=true;
+    } else if (params_.explr_mode_==1) { // Use of VBF
+      std::cout << "VBF coordination mode..." << std::endl;
+      const double CONTRAST = 0.95;
+      bool outOfSelfVoronoi = false;
+      double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
+                          + SQ(peer_vehicles_[0].y() - newState[1]) + SQ(peer_vehicles_[0].z() - newState[2]);
+      for (int i = 1; i < peer_vehicles_.size(); i++) {
+        if (peer_vehicles_[i] == tf::Vector3(4, 4, 0.13))
+          continue;
+        double peer_dist_sq = SQ(peer_vehicles_[i].x() - newState[0]) + SQ(peer_vehicles_[i].y() - newState[1])
+                              + SQ(peer_vehicles_[i].z() - newState[2]);
+        if (peer_dist_sq < my_dist_sq)
+          outOfSelfVoronoi = true;
+      }
+      if (outOfSelfVoronoi) {
+        if (biased_coin(CONTRAST))
+          continue;
+      }
+      else {
+        if (biased_coin(1 - CONTRAST))
+          continue;
+      }
+      solutionFound = true;
+    } else if (params_.explr_mode_==2) { // Cost-Utility
+      std::cout << "Cost-utility coordination mode..." << std::endl;
+      solutionFound = true;
+    }
   }
 
 // Find nearest neighbour

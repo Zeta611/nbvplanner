@@ -45,8 +45,16 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
   peerRrtPub_ = nh_.advertise<multiagent_collision_check::Tree>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
-  // plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
-  plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback, this);
+
+  int rh_mode = true;
+  std::cout << "rh_mode is " << rh_mode << std::endl;
+  if (rh_mode) {
+    std::cout << "Receding horizon mode" << std::endl;
+    plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
+  } else {
+    std::cout << "NBV / NF mode" << std::endl;
+    plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback, this);
+  }
 
   pub_path = nh_.advertise<sensor_msgs::PointCloud2>("path", 1000);
 
@@ -232,43 +240,44 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 
-  std::vector<tf::Vector3> peerPoses = tree_->getPeerPose(loopCount);
-
-  for ( int i = 0; i <  peerPoses.size() ; i++  ){
-    // Publish visualization of total exploration area
-    visualization_msgs::Marker p;
-    p.header.stamp = ros::Time::now();
-    p.header.seq = 0;
-    p.header.frame_id = params_.navigationFrame_;
-    p.id = i;
-    p.ns = "workspace";
-    p.type = visualization_msgs::Marker::CUBE;
-    p.action = visualization_msgs::Marker::ADD;
-    p.pose.position.x = peerPoses[i].x();
-    p.pose.position.y = peerPoses[i].y();
-    p.pose.position.z = peerPoses[i].z();
-    tf::Quaternion quat;
-    quat.setEuler(0.0, 0.0, 0.0);
-    p.pose.orientation.x = quat.x();
-    p.pose.orientation.y = quat.y();
-    p.pose.orientation.z = quat.z();
-    p.pose.orientation.w = quat.w();
-    p.scale.x = 1;
-    p.scale.y = 1;
-    p.scale.z = 1;
-    p.color.r = 200.0 / 255.0;
-    p.color.g = 100.0 / 255.0;
-    p.color.b = 0.0;
-    p.color.a = 1.0;
-    peerPosPub_.publish(p);
-  }
+//  std::vector<tf::Vector3> peerPoses = tree_->getPeerPose(loopCount);
+//
+//  for ( int i = 0; i <  peerPoses.size() ; i++  ){
+//    // Publish visualization of total exploration area
+//    visualization_msgs::Marker p;
+//    p.header.stamp = ros::Time::now();
+//    p.header.seq = 0;
+//    p.header.frame_id = params_.navigationFrame_;
+//    p.id = i;
+//    p.ns = "workspace";
+//    p.type = visualization_msgs::Marker::CUBE;
+//    p.action = visualization_msgs::Marker::ADD;
+//    p.pose.position.x = peerPoses[i].x();
+//    p.pose.position.y = peerPoses[i].y();
+//    p.pose.position.z = peerPoses[i].z();
+//    tf::Quaternion quat;
+//    quat.setEuler(0.0, 0.0, 0.0);
+//    p.pose.orientation.x = quat.x();
+//    p.pose.orientation.y = quat.y();
+//    p.pose.orientation.z = quat.z();
+//    p.pose.orientation.w = quat.w();
+//    p.scale.x = 1;
+//    p.scale.y = 1;
+//    p.scale.z = 1;
+//    p.color.r = 200.0 / 255.0;
+//    p.color.g = 100.0 / 255.0;
+//    p.color.b = 0.0;
+//    p.color.a = 1.0;
+//    peerPosPub_.publish(p);
+//  }
   nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)tree_->get_kdtree()->root->data;
   multiagent_collision_check::Tree rrt;
   std::vector<multiagent_collision_check::Node> serial_data;
+  // TODO: Serialize leaf nodes
   serialize(data, &serial_data);
   rrt.tree.clear();
 
-//  This is a root node of a previous RRT, which is needed to appropriately update rrts_
+//  This is a root node of a previous RRT, which is needed to appropriately update rrts
   multiagent_collision_check::Node serial_prev_data;
   serial_prev_data.isNode = false;
   serial_prev_data.state.x = prev_state.x();
@@ -399,6 +408,12 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
         "No degressive factor for gain accumulation specified. Looking for %s. Default is 0.25.",
         (ns + "/nbvp/gain/degressive_coeff").c_str());
   }
+  params_.cuCoeff_ = 0.5;
+  if (!ros::param::get(ns + "/nbvp/gain/cu_coeff", params_.cuCoeff_)) {
+    ROS_WARN(
+            "No cost-utility factor for gain accumulation specified. Looking for %s. Default is 0.5.",
+            (ns + "/nbvp/gain/cu_coeff").c_str());
+  }
   params_.extensionRange_ = 1.0;
   if (!ros::param::get(ns + "/nbvp/tree/extension_range", params_.extensionRange_)) {
     ROS_WARN("No value for maximal extension range specified. Looking for %s. Default is 1.0m.",
@@ -511,6 +526,16 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No option for exact root selection specified. Looking for %s. Default is true.",
              (ns + "/nbvp/tree/exact_root").c_str());
   }
+  params_.explr_mode_ = 0;
+  if (!ros::param::get(ns + "/nbvp/mode", params_.explr_mode_)) {
+    ROS_WARN("No mode for exploration specified. Looking for %s. Default is NBVP without coordination.",
+             (ns + "/nbvp/mode").c_str());
+  }
+//  params_.rh_ = 1;
+//  if (!ros::param::get(ns + "/nbvp/rh", params_.rh_)) {
+//    ROS_WARN("Receding horizon method not specified. Looking for %s. Default is receding horizon method enabled.",
+//             (ns + "/nbvp/rh").c_str());
+//  }
   return ret;
 }
 
@@ -605,7 +630,43 @@ int nbvInspection::nbvPlanner<stateVec>::deserialize(nbvInspection::Node<stateVe
   return 0;
 }
 
-/*---------------- Volumetric RRT Method (Start) ----------------------*/
+template<typename stateVec>
+void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) {
+  if (rrts_.size() != 3) {
+    for (int i = 0; i < 3; i++)
+      rrts_.push_back(new std::vector<Eigen::Vector4d>);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    if (rrts_[i]->size() <= 0) {
+      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
+           it != rrtMsg.tree.end(); it++) {
+        if (it->isNode)
+          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
+        else
+          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
+      }
+      return;
+    }
+
+    bool flag;
+    flag = (*rrts_[i])[0][0] == rrtMsg.tree[0].state.x
+           && (*rrts_[i])[0][1] == rrtMsg.tree[0].state.y && (*rrts_[i])[0][2] == rrtMsg.tree[0].state.z;
+    if (flag) {
+      rrts_[i]->clear();
+      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
+           it != rrtMsg.tree.end(); it++) {
+        if (it->isNode)
+          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
+        else
+          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
+      }
+      return;
+    }
+  }
+}
+
+/*---------------- Volumetric RRT Method ----------------------*/
 template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res)
 {
@@ -701,42 +762,5 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
   evadePub_.publish(segment);
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
   return true;
-}
-
-/*---------------- Volumetric RRT Method (End) ----------------------*/
-template<typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Tree& rrtMsg) {
-  if (rrts_.size() != 3) {
-    for (int i = 0; i < 3; i++)
-      rrts_.push_back(new std::vector<Eigen::Vector4d>);
-  }
-
-  for (int i = 0; i < 3; i++) {
-    if (rrts_[i]->size() <= 0) {
-      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
-           it != rrtMsg.tree.end(); it++) {
-        if (it->isNode)
-          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
-        else
-          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
-      }
-      return;
-    }
-
-    bool flag;
-    flag = (*rrts_[i])[0][0] == rrtMsg.tree[0].state.x
-           && (*rrts_[i])[0][1] == rrtMsg.tree[0].state.y && (*rrts_[i])[0][2] == rrtMsg.tree[0].state.z;
-    if (flag) {
-      rrts_[i]->clear();
-      for (typename std::vector<multiagent_collision_check::Node>::const_iterator it = rrtMsg.tree.begin() + 1;
-           it != rrtMsg.tree.end(); it++) {
-        if (it->isNode)
-          rrts_[i]->push_back(Eigen::Vector4d(it->state.x, it->state.y, it->state.z, it->gain));
-        else
-          rrts_[i]->push_back(Eigen::Vector4d(0, 0, 0, -1));
-      }
-      return;
-    }
-  }
 }
 #endif // NBVP_HPP_
