@@ -612,8 +612,8 @@ void nbvInspection::RrtTree::getLeafNode(int dummy)
 
 std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
 {
-    std::vector<std::vector<Node<StateVec> *>> v;
-    return
+    std::vector<Node<StateVec> *> v;
+    return v;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
