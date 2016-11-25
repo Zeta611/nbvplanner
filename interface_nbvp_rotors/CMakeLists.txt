@@ -5,9 +5,11 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
   mav_msgs
   tf
+  octomap_world
 )
 
 include_directories(${Eigen_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+
 
 catkin_package(
   INCLUDE_DIRS ${Eigen_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}

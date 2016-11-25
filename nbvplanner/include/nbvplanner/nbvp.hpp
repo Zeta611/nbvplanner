@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2015 Andreas Bircher, ASL, ETH Zurich, Switzerland
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@
 #define NBVP_HPP_
 
 #include <fstream>
+#include <ctime>
 #include <eigen3/Eigen/Dense>
 
 #include <visualization_msgs/Marker.h>
@@ -170,6 +171,7 @@ template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::Request& req,
                                                           nbvplanner::nbvp_srv::Response& res)
 {
+  double rate;
   ros::Time computationTime = ros::Time::now();
   // Check that planner is ready to compute path.
   if (!ros::ok()) {
@@ -203,6 +205,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   else {
     tree_->clear();
     tree_->initialize();
+
     for (int i = 0; i < 3; i++)
       prev_state[i] = 0;
   }
@@ -213,6 +216,11 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
     if (tree_->getCounter() > params_.cuttoffIterations_) {
       ROS_INFO("No gain found, shutting down");
+
+      std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
+
+      rate = manager_->explorationRate(1);
+      std::cout << "Exploration Rate: " << rate << std::endl;
       ros::shutdown();
       return true;
     }
@@ -224,7 +232,29 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     tree_->iterate(1);
     loopCount++;
   }
+
+  tree_->getLeafNode(1);
+
+  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
+  int n = rootnode->leafNode.size();
+  std::cout << "----------Debug Leafnode---------" << std::endl;
+  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
+  for (int i=0; i<n; i++){
+      std::cout << "x: " << rootnode->leafNode[i]->state_[0] << " y: " << rootnode->leafNode[i]->state_[1] <<
+                " z: " << rootnode->leafNode[i]->state_[2] << " dirNum: " <<rootnode->leafNode[i]->dirNum_ << std::endl;
+  }
+  std::cout << "-----------------------------------" << std::endl;
+
+//  int n = rootnode->dirNum_;
+//  std::cout << "----------Debug Leafnode---------" << std::endl;
+//  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
+//  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
+//  for (int i=0; i<n; i++){
+//      std::cout << "x: " << rootnode->leafNode[i]->state_[0] << " y: " << rootnode->leafNode[i]->state_[1] << " z: " << rootnode->leafNode[i]->state_[2] << " dirNum: " <<rootnode->leafNode[i]->dirNum_ << std::endl;
+//  }
+//  std::cout << "-----------------------------------" << std::endl;
   // Extract the best edge.
+
   res.path = tree_->getBestEdge(req.header.frame_id);
 
   tree_->memorizeBestBranch();
@@ -270,6 +300,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 //    p.color.a = 1.0;
 //    peerPosPub_.publish(p);
 //  }
+//
   nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)tree_->get_kdtree()->root->data;
 
   int n_leaf = data->leafNode.size();
@@ -293,52 +324,61 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   peerRrtPub_.publish(rrt);
 
 //  print RRTs
-  int N = 2;
-  if (rrts_.size() > 0) {
-    if ((*rrts_[0]).size() > 0) {
-      std::cout << "RRT1" << std::endl;
-      for (int i = 1; i < (*rrts_[0]).size() && i < N; i++) {
-        std::cout << (*rrts_[0])[i][0] << ", " << (*rrts_[0])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
-                  << (*rrts_[0])[i][3] << std::endl;
-      }
-    }
-  }
-  if (rrts_.size() > 1) {
-    if ((*rrts_[1]).size() > 0) {
-      std::cout << "RRT2" << std::endl;
-      for (int i = 1; i < (*rrts_[1]).size() && i < N; i++) {
-        std::cout << (*rrts_[1])[i][0] << ", " << (*rrts_[1])[i][1] << ", " << (*rrts_[1])[i][2] << "; "
-                  << (*rrts_[1])[i][3] << std::endl;
-      }
-    }
-  }
-  if (rrts_.size() > 2) {
-    if ((*rrts_[2]).size() > 0) {
-      std::cout << "RRT3" << std::endl;
-      for (int i = 1; i < (*rrts_[2]).size() && i < N; i++) {
-        std::cout << (*rrts_[2])[i][0] << ", " << (*rrts_[2])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
-                  << (*rrts_[0])[i][3] << std::endl;
-      }
-    }
-  }
-//  print a deserialized RRT
-  if (rrts_.size() > 0) {
-    nbvInspection::Node<stateVec> * deserialized_root = new nbvInspection::Node<stateVec>;
-    int num = 1;
-    deserialize(deserialized_root, rrts_[0], &num);
-    std::cout << "Deserialization" << std::endl;
-    std::cout << "root" << std::endl;
-    for (int i = 0; i < 3; i++)
-      std::cout << deserialized_root->state_[i] << " ";
-    std::cout << std::endl;
-    std::cout << "children_[0]" << std::endl;
-    for (int i = 0; i < 3; i++)
-      std::cout << deserialized_root->children_[0]->state_[i] << " ";
-    std::cout << std::endl;
-  }
+//  int N = 2;
+//  if (rrts_.size() > 0) {
+//    if ((*rrts_[0]).size() > 0) {
+//      std::cout << "RRT1" << std::endl;
+//      for (int i = 1; i < (*rrts_[0]).size() && i < N; i++) {
+//        std::cout << (*rrts_[0])[i][0] << ", " << (*rrts_[0])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
+//                  << (*rrts_[0])[i][3] << std::endl;
+//      }
+//    }
+//  }
+//  if (rrts_.size() > 1) {
+//    if ((*rrts_[1]).size() > 0) {
+//      std::cout << "RRT2" << std::endl;
+//      for (int i = 1; i < (*rrts_[1]).size() && i < N; i++) {
+//        std::cout << (*rrts_[1])[i][0] << ", " << (*rrts_[1])[i][1] << ", " << (*rrts_[1])[i][2] << "; "
+//                  << (*rrts_[1])[i][3] << std::endl;
+//      }
+//    }
+//  }
+//  if (rrts_.size() > 2) {
+//    if ((*rrts_[2]).size() > 0) {
+//      std::cout << "RRT3" << std::endl;
+//      for (int i = 1; i < (*rrts_[2]).size() && i < N; i++) {
+//        std::cout << (*rrts_[2])[i][0] << ", " << (*rrts_[2])[i][1] << ", " << (*rrts_[0])[i][2] << "; "
+//                  << (*rrts_[0])[i][3] << std::endl;
+//      }
+//    }
+//  }
+////  print a deserialized RRT
+//  if (rrts_.size() > 0) {
+//    nbvInspection::Node<stateVec> * deserialized_root = new nbvInspection::Node<stateVec>;
+//    int num = 1;
+//    deserialize(deserialized_root, rrts_[0], &num);
+//    std::cout << "Deserialization" << std::endl;
+//    std::cout << "root" << std::endl;
+//    for (int i = 0; i < 3; i++)
+//      std::cout << deserialized_root->state_[i] << " ";
+//    std::cout << std::endl;
+//    std::cout << "children_[0]" << std::endl;
+//    for (int i = 0; i < 3; i++)
+//      std::cout << deserialized_root->children_[0]->state_[i] << " ";
+//    std::cout << std::endl;
+//  }
+// For experiment
+//  rate = manager_->explorationRate(1);
+//  std::cout << "Exploration Rate: " << rate*100 << "%" << std::endl;
+
+  std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
+
+//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+
+  outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+  outFile.close();
   return true;
 }
-
 template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::setParams()
 {

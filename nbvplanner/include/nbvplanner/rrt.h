@@ -58,6 +58,9 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   bool biased_coin(double probability);
   virtual struct kdtree* get_kdtree();
 
+  void getLeafNode(int dummy);
+  std::vector<Node<StateVec> *> getCandidates();
+
   virtual void VRRT_iterate(int iterations);
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);
   virtual void VRRT_SmoothPath(std::vector<nbvInspection::Node<StateVec>*>& states);

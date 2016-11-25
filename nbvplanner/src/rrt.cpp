@@ -24,10 +24,12 @@
 #include <nbvplanner/tree.h>
 #include <kdtree/kdtree.h>
 
+typedef Eigen::Vector4d StateVec;
+
 nbvInspection::RrtTree::RrtTree()
     : nbvInspection::TreeBase<StateVec>::TreeBase()
 {
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -57,7 +59,7 @@ nbvInspection::RrtTree::RrtTree(mesh::StlMesh * mesh, volumetric_mapping::Octoma
 {
   mesh_ = mesh;
   manager_ = manager;
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
   iterationCount_ = 0;
   for (int i = 0; i < 4; i++) {
     inspectionThrottleTime_.push_back(ros::Time::now().toSec());
@@ -315,7 +317,6 @@ void nbvInspection::RrtTree::iterate(int iterations)
 {
 // In this function a new configuration is sampled and added to the tree.
   StateVec newState;
-
 // Sample over a sphere with the radius of the maximum diagonal of the exploration
 // space. Throw away samples outside the sampling region it exiting is not allowed
 // by the corresponding parameter. This method is to not bias the tree towards the
@@ -334,20 +335,21 @@ void nbvInspection::RrtTree::iterate(int iterations)
 
     newState += rootNode_->state_;
     if (!params_.softBounds_) {
-      if (newState.x() < params_.minX_ + 0.5 * params_.boundingBox_.x()) {
-        continue;
-      } else if (newState.y() < params_.minY_ + 0.5 * params_.boundingBox_.y()) {
-        continue;
-      } else if (newState.z() < params_.minZ_ + 0.5 * params_.boundingBox_.z()) {
-        continue;
-      } else if (newState.x() > params_.maxX_ - 0.5 * params_.boundingBox_.x()) {
-        continue;
-      } else if (newState.y() > params_.maxY_ - 0.5 * params_.boundingBox_.y()) {
-        continue;
-      } else if (newState.z() > params_.maxZ_ - 0.5 * params_.boundingBox_.z()) {
-        continue;
-      }
+        if (newState.x() < params_.minX_ + 0.5 * params_.boundingBox_.x()) {
+            continue;
+        } else if (newState.y() < params_.minY_ + 0.5 * params_.boundingBox_.y()) {
+            continue;
+        } else if (newState.z() < params_.minZ_ + 0.5 * params_.boundingBox_.z()) {
+            continue;
+        } else if (newState.x() > params_.maxX_ - 0.5 * params_.boundingBox_.x()) {
+            continue;
+        } else if (newState.y() > params_.maxY_ - 0.5 * params_.boundingBox_.y()) {
+            continue;
+        } else if (newState.z() > params_.maxZ_ - 0.5 * params_.boundingBox_.z()) {
+            continue;
+        }
     }
+
     std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
     if (params_.explr_mode_==1) { // use of VBF
       std::cout << "VBF coordination mode..." << std::endl;
@@ -405,6 +407,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
           origin, direction + origin + direction.normalized() * params_.dOvershoot_,
           params_.boundingBox_)
       && !multiagent::isInCollision(newParent->state_, newState, params_.boundingBox_, segments_)) {
+
     // Sample the new orientation
     newState[3] = 0;
       for (int i = 1; i < 20; i++){
@@ -418,12 +421,14 @@ void nbvInspection::RrtTree::iterate(int iterations)
               newState[3] = temp;
           }
       }
+
     // Create new node and insert into tree
     nbvInspection::Node<StateVec> * newNode = new nbvInspection::Node<StateVec>;
     newNode->state_ = newState;
     newNode->parent_ = newParent;
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
+
     if (params_.explr_mode_==2) { // cost-utility
       double others_f = 0;
 
@@ -446,8 +451,28 @@ void nbvInspection::RrtTree::iterate(int iterations)
     }
     kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
 
-    // Display new node
+    //double buf[4];
+      //for (int i = 0; i<4; i++){
+          //buf[i] = newState[i];
+      //}
+    //kd_insert(kdTree_, buf , newNode);
+    
+      // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
+
+      // Display new node
     publishNode(newNode);
+    rootNode_->allNode.push_back(newNode);
+
+    if (newNode->parent_->parent_ == NULL) { //new direction
+        newNode->dirNum_ = newParent->children_.size()-1;
+    } else {
+        newNode->dirNum_ = newParent->dirNum_;
+    }
+
+    newNode->isLeaf = true;
+    if (newParent->isLeaf){
+        newParent->isLeaf = false;
+    }
 
     // Update best IG and node if applicable
     if (newNode->gain_ > bestGain_) {
@@ -473,7 +498,7 @@ void nbvInspection::RrtTree::initialize()
     segments_[i]->clear();
   }
 // Initialize kd-tree with root node and prepare log file
-  kdTree_ = kd_create(3);
+  kdTree_ = kd_create(4);
 
   if (params_.log_) {
     if (fileTree_.is_open()) {
@@ -487,8 +512,15 @@ void nbvInspection::RrtTree::initialize()
   rootNode_->distance_ = 0.0;
   rootNode_->gain_ = params_.zero_gain_;
   rootNode_->parent_ = NULL;
+  rootNode_->isLeaf = false;
+  rootNode_->dirNum_ = 0;
 
-  if (params_.exact_root_) {
+  std::vector<Node<StateVec> *> v;
+  rootNode_->allNode = v;
+  rootNode_->leafNode = v;
+  rootNode_->allNode.push_back(rootNode_);
+
+    if (params_.exact_root_) {
     if (iterationCount_ <= 1) {
       exact_root_ = root_;
     }
@@ -496,9 +528,12 @@ void nbvInspection::RrtTree::initialize()
   } else {
     rootNode_->state_ = root_;
   }
-  kd_insert3(kdTree_, rootNode_->state_.x(), rootNode_->state_.y(), rootNode_->state_.z(),
-             rootNode_);
-  iterationCount_++;
+    double buf[4];
+    for (int i =0; i<4; i++){buf[i]=rootNode_->state_[i];}
+  kd_insert(kdTree_, buf, rootNode_);
+    // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
+
+    iterationCount_++;
 
 // Insert all nodes of the remainder of the previous best branch, checking for collisions and
 // recomputing the gain.
@@ -535,13 +570,28 @@ void nbvInspection::RrtTree::initialize()
       newNode->parent_ = newParent;
       newNode->distance_ = newParent->distance_ + direction.norm();
       newParent->children_.push_back(newNode);
+        double cost;
+        if (newNode->distance_ >= params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_) {
+            cost = newNode->distance_;
+        }else{
+            cost = params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
+        }
       newNode->gain_ = newParent->gain_
           + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
-      kd_insert3(kdTree_, newState.x(), newState.y(), newState.z(), newNode);
+      for (int i = 0; i<4; i++){buf[i] = newState[i];}
+      kd_insert(kdTree_, buf, newNode);
+        // kd_insert4(kdTree_, newState[0], newState[1], newState[2], newState[3], newNode);
 
+      newNode->dirNum_ = 0;
       // Display new node
       publishNode(newNode);
+      rootNode_->allNode.push_back(newNode);
+
+      newNode->isLeaf = true;
+      if (newParent->isLeaf){
+          newParent->isLeaf = false;
+      }
 
       // Update best IG and node if applicable
       if (newNode->gain_ > bestGain_) {
@@ -580,6 +630,22 @@ void nbvInspection::RrtTree::initialize()
   p.lifetime = ros::Duration(0.0);
   p.frame_locked = false;
   params_.inspectionPath_.publish(p);
+}
+
+void nbvInspection::RrtTree::getLeafNode(int dummy)
+{
+    int n = rootNode_->allNode.size();
+    for (int i=0; i<n; i++){
+        if (rootNode_->allNode[i]->isLeaf) {
+            rootNode_->leafNode.push_back(rootNode_->allNode[i]);
+        }
+    }
+}
+
+std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
+{
+    std::vector<Node<StateVec> *> v;
+    return v;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
@@ -1066,7 +1132,6 @@ void nbvInspection::RrtTree::VRRT_initialize()
   rootNode_->distance_ = 0.0;
   rootNode_->gain_ = params_.zero_gain_;
   rootNode_->parent_ = NULL;
-
 
   if (params_.exact_root_) {
     if (iterationCount_ <= 1) {

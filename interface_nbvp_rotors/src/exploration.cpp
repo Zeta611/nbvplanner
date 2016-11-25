@@ -31,6 +31,8 @@
 #include <mav_msgs/conversions.h>
 #include <mav_msgs/default_topics.h>
 #include <nbvplanner/nbvp_srv.h>
+#include <octomap_world/octomap_manager.h>
+#include <octomap_world/octomap_world.h>
 
 int main(int argc, char** argv)
 {
@@ -38,6 +40,7 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;
   ros::Publisher trajectory_pub = nh.advertise < trajectory_msgs::MultiDOFJointTrajectory
       > (mav_msgs::default_topics::COMMAND_TRAJECTORY, 5);
+
   ROS_INFO("Started exploration");
 
   std_srvs::Empty srv;
