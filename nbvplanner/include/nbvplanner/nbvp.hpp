@@ -260,7 +260,10 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   target_msg.target.y = target_node[1];
   target_msg.target.z = target_node[2];
   peerRrtPub_.publish(target_msg);
+
   tree_->getLeafNode(1);
+
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
 
   // Extract the best edge.
   res.path = tree_->getBestEdge(req.header.frame_id);
