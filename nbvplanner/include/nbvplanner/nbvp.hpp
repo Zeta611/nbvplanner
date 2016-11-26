@@ -303,8 +303,6 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 //
   nbvInspection::Node<stateVec>* data = (nbvInspection::Node<stateVec>*)tree_->get_kdtree()->root->data;
 
-  int n_leaf = data->leafNode.size();
-
   multiagent_collision_check::Tree rrt;
   std::vector<multiagent_collision_check::Node> serial_data;
   // TODO: Serialize leaf nodes
@@ -647,41 +645,41 @@ void nbvInspection::nbvPlanner<stateVec>::serialize(
   serial_data->push_back(marker);
 }
 
-template<typename stateVec>
-void nbvInspection::nbvPlanner<stateVec>::serializeLeaf(
-        nbvInspection::Node<stateVec> * root, std::vector<multiagent_collision_check::Node> * serial_data) {
-  if (root == NULL)
-    return;
+//template<typename stateVec>
+//void nbvInspection::nbvPlanner<stateVec>::serializeLeaf(
+//        nbvInspection::Node<stateVec> * root, std::vector<multiagent_collision_check::Node> * serial_data) {
+//  if (root == NULL)
+//    return;
+//
+//  int n_leaf = root->leafNode.size();
+//  for (int i=0; i < n_leaf; i++) {
+//    multiagent_collision_check::Node node;
+//    node.state.x = leafNode[i]->state_[0];
+//    node.state.y = leafNode[i]->state_[1];
+//    node.state.z = leafNode[i]->state_[2];
+//    node.isNode = true;
+//    serial_data->push_back(node);
+//  }
 
-  int n_leaf = root->leafNode.size();
-  for (int i=0; i < n_leaf; i++) {
-    multiagent_collision_check::Node node;
-    node.state.x = leafNode[i]->state_[0];
-    node.state.y = leafNode[i]->state_[1];
-    node.state.z = leafNode[i]->state_[2];
-    node.isNode = true;
-    serial_data->push_back(node);
-  }
-
-  stateVec state = root->state_;
-  double gain = root->gain_;
-
-  multiagent_collision_check::Node node;
-  node.state.x = state.x();
-  node.state.y = state.y();
-  node.state.z = state.z();
-  node.gain = gain;
-  node.isNode = true;
-  serial_data->push_back(node);
-
-  std::vector<nbvInspection::Node<stateVec>*> children = root->children_;
-  for (int i = 0; i != children.size(); i++)
-    serialize(children[i], serial_data);
-
-  multiagent_collision_check::Node marker;
-  marker.isNode = false;
-  serial_data->push_back(marker);
-}
+//  stateVec state = root->state_;
+//  double gain = root->gain_;
+//
+//  multiagent_collision_check::Node node;
+//  node.state.x = state.x();
+//  node.state.y = state.y();
+//  node.state.z = state.z();
+//  node.gain = gain;
+//  node.isNode = true;
+//  serial_data->push_back(node);
+//
+//  std::vector<nbvInspection::Node<stateVec>*> children = root->children_;
+//  for (int i = 0; i != children.size(); i++)
+//    serialize(children[i], serial_data);
+//
+//  multiagent_collision_check::Node marker;
+//  marker.isNode = false;
+//  serial_data->push_back(marker);
+//}
 
 template<typename stateVec>
 int nbvInspection::nbvPlanner<stateVec>::deserialize(nbvInspection::Node<stateVec> * &root,
