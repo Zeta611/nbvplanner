@@ -23,6 +23,7 @@
 #include <nbvplanner/tree.hpp>
 #include <nbvplanner/tree.h>
 #include <kdtree/kdtree.h>
+#include <algorithm>
 
 typedef Eigen::Vector4d StateVec;
 
@@ -644,10 +645,60 @@ void nbvInspection::RrtTree::getLeafNode(int dummy)
     }
 }
 
+bool nbvInspection::RrtTree::cmp(Node<StateVec> * a, Node<StateVec> * b)
+{
+    return a->gain_ > b->gain_;
+}
+
 std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
 {
-    std::vector<Node<StateVec> *> v;
-    return v;
+    int maxNum = rootNode_->children_.size();
+    std::vector<std::vector<Node<StateVec> *>> classified(maxNum);
+
+    int n = rootNode_->leafNode.size();
+    int dir = 0;
+
+    for (int i; i<n; i++){
+        Node<StateVec> * currentNode = rootNode_->leafNode[i];
+        dir = currentNode->dirNum_;
+        classified[dir].push_back(currentNode);
+    }
+
+    int max = 0;
+    for (int i=0; i<maxNum; i++){
+        if (max < classified[i].size()) {
+            max = classified[i].size();
+        }
+    }
+
+    Node<StateVec> * dummyNode = new Node<StateVec>;
+    dummyNode->gain_ = params_.zero_gain_;
+
+    for (int i=0; i<maxNum; i++) {
+        int t = classified[i].size();
+        for (int j = 0; j < max - t; j++) {
+            classified[i].push_back(dummyNode);
+        }
+    }
+
+    for (int i=0; i<maxNum; i++){
+        std::sort(classified[i].begin(), classified[i].end(), cmp);
+    }
+
+    std::vector<Node<StateVec> *> candidates;
+    std::vector<Node<StateVec> *> competitive;
+
+    for (int i=0; i<max; i++){
+        competitive.clear();
+        for (int j=0; j<maxNum; j++){
+            competitive.push_back(classified[j][i]);
+        }
+
+        std::sort(competitive.begin(), competitive.end(), cmp);
+        candidates.push_back(competitive[0]);
+    }
+
+    return candidates;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
