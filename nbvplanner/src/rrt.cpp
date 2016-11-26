@@ -23,6 +23,7 @@
 #include <nbvplanner/tree.hpp>
 #include <nbvplanner/tree.h>
 #include <kdtree/kdtree.h>
+#include <algorithm>
 
 typedef Eigen::Vector4d StateVec;
 
@@ -648,21 +649,31 @@ void nbvInspection::RrtTree::getLeafNode(int dummy)
     }
 }
 
-std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::sortNodeList(std::vector<nbvInspection::Node<StateVec> *> v)
+//std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::sortNodeList(std::vector<nbvInspection::Node<StateVec> *> v)
+//{
+//    int n = v.size();
+//    std::vector<nbvInspection::Node<StateVec> *> w(n);
+//    for (int i=0; i<n; i++){
+//        nbvInspection::Node<StateVec> * curNode = v[i];
+//        int counter = 0;
+//        for (int j=0; j<n; j++){
+//            if (curNode->gain_ < v[j]->gain_){
+//                counter += 1;
+//            }
+//        }
+//        w[counter] = curNode;
+//    }
+//
+//    for (int i=0; i<n; i++){
+//      std::cout << "before: " << v[i]->gain_ << " after: " << w[i]->gain_ << std::endl;
+//    }
+//
+//    return w;
+//}
+
+bool nbvInspection::RrtTree::cmp(Node<StateVec> * a, Node<StateVec> * b)
 {
-    int n = v.size();
-    std::vector<nbvInspection::Node<StateVec> *> w(n);
-    for (int i=0; i<n; i++){
-        nbvInspection::Node<StateVec> * curNode = v[i];
-        int counter = 0;
-        for (int j=0; j<n; j++){
-            if (curNode->gain_ < v[j]->gain_){
-                counter += 1;
-            }
-        }
-        w[counter] = curNode;
-    }
-    return w;
+    return a->gain_ > b->gain_;
 }
 
 std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
@@ -689,16 +700,15 @@ std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidat
     Node<StateVec> * dummyNode = new Node<StateVec>;
     dummyNode->gain_ = params_.zero_gain_;
 
-    for (int i=0; i<maxNum; i++){
+    for (int i=0; i<maxNum; i++) {
         int t = classified[i].size();
-        for (int j=0; j<max-t; j++){
-          classified[i].push_back(dummyNode);
+        for (int j = 0; j < max - t; j++) {
+            classified[i].push_back(dummyNode);
         }
     }
 
-    std::vector<std::vector<Node<StateVec> *>> sorted(maxNum);
     for (int i=0; i<maxNum; i++){
-        sorted[i]=sortNodeList(classified[i]);
+        std::sort(classified[i].begin(), classified[i].end(), cmp);
     }
 
     std::vector<Node<StateVec> *> candidates;
@@ -707,10 +717,11 @@ std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidat
     for (int i=0; i<max; i++){
         competitive.clear();
         for (int j=0; j<maxNum; j++){
-            competitive.push_back(sorted[j][i]);
+            competitive.push_back(classified[j][i]);
         }
 
-        candidates.push_back(sortNodeList(competitive)[0]);
+        std::sort(competitive.begin(), competitive.end(), cmp);
+        candidates.push_back(competitive[0]);
     }
 
     return candidates;

@@ -132,6 +132,7 @@ class TreeBase
 
   virtual void getLeafNode(int dummy) = 0;
   virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
+//  virtual std::vector<nbvInspection::Node<Eigen::Vector4d> *> sortNodeList(std::vector<nbvInspection::Node<Eigen::Vector4d> *> v) = 0;
 
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
   virtual void clear() = 0;
