@@ -649,28 +649,6 @@ void nbvInspection::RrtTree::getLeafNode(int dummy)
     }
 }
 
-//std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::sortNodeList(std::vector<nbvInspection::Node<StateVec> *> v)
-//{
-//    int n = v.size();
-//    std::vector<nbvInspection::Node<StateVec> *> w(n);
-//    for (int i=0; i<n; i++){
-//        nbvInspection::Node<StateVec> * curNode = v[i];
-//        int counter = 0;
-//        for (int j=0; j<n; j++){
-//            if (curNode->gain_ < v[j]->gain_){
-//                counter += 1;
-//            }
-//        }
-//        w[counter] = curNode;
-//    }
-//
-//    for (int i=0; i<n; i++){
-//      std::cout << "before: " << v[i]->gain_ << " after: " << w[i]->gain_ << std::endl;
-//    }
-//
-//    return w;
-//}
-
 bool nbvInspection::RrtTree::cmp(Node<StateVec> * a, Node<StateVec> * b)
 {
     return a->gain_ > b->gain_;

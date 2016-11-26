@@ -235,30 +235,8 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   tree_->getLeafNode(1);
 
-  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
-  int n = rootnode->leafNode.size();
-  std::cout << "----------Debug Leafnode---------" << std::endl;
-  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
-  for (int i=0; i<n; i++){
-      nbvInspection::Node<stateVec> * curNode = rootnode->leafNode[i];
-      std::cout << " dirNum: " << curNode->dirNum_ << " gain: " << curNode->gain_ << std::endl;
-  }
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
 
-  std::cout << "----------debug candidates--------" << std::endl;
-  std::vector<nbvInspection::Node<stateVec>*> v = tree_->getCandidates();
-  for (int i=0; i<v.size(); i++) {
-    nbvInspection::Node<stateVec> * curNode = v[i];
-    std::cout << i << "-th Candidates. dirNum: " << curNode->dirNum_ << " gain: " << curNode->gain_ << std::endl;
-  }
-
-//  int n = rootnode->dirNum_;
-//  std::cout << "----------Debug Leafnode---------" << std::endl;
-//  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
-//  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
-//  for (int i=0; i<n; i++){
-//      std::cout << "x: " << rootnode->leafNode[i]->state_[0] << " y: " << rootnode->leafNode[i]->state_[1] << " z: " << rootnode->leafNode[i]->state_[2] << " dirNum: " <<rootnode->leafNode[i]->dirNum_ << std::endl;
-//  }
-//  std::cout << "-----------------------------------" << std::endl;
   // Extract the best edge.
 
   res.path = tree_->getBestEdge(req.header.frame_id);
