@@ -1,3 +1,2 @@
-geometry_msgs/Point state
-float64 gain
-bool isNode
+geometry_msgs/Point prev_state
+geometry_msgs/Point target

@@ -126,7 +126,7 @@ class TreeBase
   void setPeerStateFromPoseMsg2(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void setPeerStateFromPoseMsg3(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void evade(const multiagent_collision_check::Segment& segmentMsg);
-  virtual void iterate(int iterations) = 0;
+  virtual void iterate(std::vector<Eigen::Vector4d> peer_target) = 0;
   virtual void initialize() = 0;
 
   virtual void getLeafNode(int dummy) = 0;
@@ -146,6 +146,7 @@ class TreeBase
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
   virtual void VRRT_initialize() = 0 ;
   virtual Eigen::Vector4d getRoot() = 0;
+  virtual Eigen::Vector4d getBest() = 0;
 };
 }
 

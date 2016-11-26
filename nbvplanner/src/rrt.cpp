@@ -313,7 +313,7 @@ bool nbvInspection::RrtTree::biased_coin(double probability)
   return false;
 }
 
-void nbvInspection::RrtTree::iterate(int iterations)
+void nbvInspection::RrtTree::iterate(std::vector<Eigen::Vector4d> peer_target)
 {
 // In this function a new configuration is sampled and added to the tree.
   StateVec newState;
@@ -350,9 +350,7 @@ void nbvInspection::RrtTree::iterate(int iterations)
         }
     }
 
-    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
     if (params_.explr_mode_==1) { // use of VBF
-      std::cout << "VBF coordination mode..." << std::endl;
       const double CONTRAST = 0.95;
       bool outOfSelfVoronoi = false;
       double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
@@ -375,10 +373,8 @@ void nbvInspection::RrtTree::iterate(int iterations)
       solutionFound = true;
     } else {
       if (params_.explr_mode_==0) { // no coordination
-        std::cout << "No coordination mode..." << std::endl;
         solutionFound=true;
       } else if (params_.explr_mode_==2) { // cost-utility
-        std::cout << "Cost-utility coordination mode..." << std::endl;
         solutionFound = true;
       }
     }
@@ -976,12 +972,9 @@ void nbvInspection::RrtTree::VRRT_iterate(int iterations)
         continue;
       }
     }
-    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
     if (params_.explr_mode_==0) { // without coordination
-      std::cout << "No coordination mode..." << std::endl;
       solutionFound=true;
     } else if (params_.explr_mode_==1) { // Use of VBF
-      std::cout << "VBF coordination mode..." << std::endl;
       const double CONTRAST = 0.95;
       bool outOfSelfVoronoi = false;
       double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
@@ -1004,7 +997,6 @@ void nbvInspection::RrtTree::VRRT_iterate(int iterations)
       }
       solutionFound = true;
     } else if (params_.explr_mode_==2) { // Cost-Utility
-      std::cout << "Cost-utility coordination mode..." << std::endl;
       solutionFound = true;
     }
   }
@@ -1141,14 +1133,11 @@ void nbvInspection::RrtTree::VRRT_initialize()
 
   if (params_.exact_root_) {
     if (iterationCount_ <= 1) {
-      std::cout << "1" << std::endl;
       exact_root_ = root_;
     }
     rootNode_->state_ = exact_root_;
-    std::cout << "2" << std::endl;
   } else {
     rootNode_->state_ = root_;
-    std::cout << "3" << std::endl;
   }
 
   kd_insert3(kdTree_, rootNode_->state_.x(), rootNode_->state_.y(), rootNode_->state_.z(),
@@ -1193,8 +1182,7 @@ Eigen::Vector4d nbvInspection::RrtTree::getRoot(){
     ret[1] = rootNode_->state_[1];
     ret[2] = rootNode_->state_[2];
     ret[3] = rootNode_->state_[3];
-  }
-  else{
+  } else {
     ret[0] = 0;
     ret[1] = 0;
     ret[2] = 0;
@@ -1203,5 +1191,22 @@ Eigen::Vector4d nbvInspection::RrtTree::getRoot(){
   return ret;
 }
 
-std::vector<tf::Vector3> nbvInspection::RrtTree::peer_vehicles_ = {  };
+Eigen::Vector4d nbvInspection::RrtTree::getBest() {
+  Eigen::Vector4d ret;
+
+  if (bestNode_!=NULL) {
+    ret[0] = bestNode_->state_[0];
+    ret[1] = bestNode_->state_[1];
+    ret[2] = bestNode_->state_[2];
+    ret[3] = bestNode_->state_[3];
+  } else {
+    ret[0] = 0;
+    ret[1] = 0;
+    ret[2] = 0;
+    ret[3] = 0;
+  }
+  return ret;
+}
+
+std::vector<tf::Vector3> nbvInspection::RrtTree::peer_vehicles_ = { };
 #endif

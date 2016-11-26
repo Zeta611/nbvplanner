@@ -44,7 +44,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual void setStateFromOdometryMsg(const nav_msgs::Odometry& pose);
   virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose, int n_peer);
   virtual void initialize();
-  virtual void iterate(int iterations);
+  virtual void iterate(std::vector<Eigen::Vector4d> peer_target);
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
   virtual void clear();
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
@@ -66,6 +66,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual void VRRT_SmoothPath(std::vector<nbvInspection::Node<StateVec>*>& states);
   virtual void VRRT_initialize();
   virtual Eigen::Vector4d getRoot();
+  virtual Eigen::Vector4d getBest();
 
 protected:
   kdtree * kdTree_;
