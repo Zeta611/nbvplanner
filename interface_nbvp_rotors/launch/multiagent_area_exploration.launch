@@ -28,8 +28,6 @@
     <arg name="sensor_max_range" value="5.0" />
     <arg name="peer_vehicle_pose_topic_2" value="/firefly2/ground_truth/pose_with_covariance"/>
     <arg name="peer_vehicle_pose_topic_3" value="/firefly3/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_2" value="/firefly2/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_3" value="/firefly3/ground_truth/pose_with_covariance"/>
   </include>
 
   <include file="$(find interface_nbvp_rotors)/launch/mav_inspector.launch">
@@ -50,8 +48,6 @@
     <arg name="sensor_max_range" value="5.0" />
     <arg name="peer_vehicle_pose_topic_1" value="/firefly1/ground_truth/pose_with_covariance"/>
     <arg name="peer_vehicle_pose_topic_3" value="/firefly3/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_1" value="/firefly1/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_3" value="/firefly3/ground_truth/pose_with_covariance"/>
   </include>
 
   <include file="$(find interface_nbvp_rotors)/launch/mav_inspector.launch">
@@ -72,8 +68,6 @@
     <arg name="sensor_max_range" value="5.0" />
     <arg name="peer_vehicle_pose_topic_1" value="/firefly1/ground_truth/pose_with_covariance"/>
     <arg name="peer_vehicle_pose_topic_2" value="/firefly2/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_1" value="/firefly1/ground_truth/pose_with_covariance"/>
-    <arg name="peer_vehicle_rrt_topic_2" value="/firefly2/ground_truth/pose_with_covariance"/>
   </include>
   
   <include file="$(find prune_pointcloud)/launch/prune_pointcloud.launch">
