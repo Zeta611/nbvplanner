@@ -59,7 +59,8 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual struct kdtree* get_kdtree();
 
   void getLeafNode(int dummy);
-  std::vector<Node<StateVec> *> getCandidates();
+  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates();
+  std::vector<nbvInspection::Node<StateVec> *> sortNodeList(std::vector<Node<StateVec> *> v);
 
   virtual void VRRT_iterate(int iterations);
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);

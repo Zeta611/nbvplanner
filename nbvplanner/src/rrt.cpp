@@ -350,9 +350,9 @@ void nbvInspection::RrtTree::iterate(int iterations)
         }
     }
 
-    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
+//    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
     if (params_.explr_mode_==1) { // use of VBF
-      std::cout << "VBF coordination mode..." << std::endl;
+//      std::cout << "VBF coordination mode..." << std::endl;
       const double CONTRAST = 0.95;
       bool outOfSelfVoronoi = false;
       double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])
@@ -375,10 +375,10 @@ void nbvInspection::RrtTree::iterate(int iterations)
       solutionFound = true;
     } else {
       if (params_.explr_mode_==0) { // no coordination
-        std::cout << "No coordination mode..." << std::endl;
+//        std::cout << "No coordination mode..." << std::endl;
         solutionFound=true;
       } else if (params_.explr_mode_==2) { // cost-utility
-        std::cout << "Cost-utility coordination mode..." << std::endl;
+//        std::cout << "Cost-utility coordination mode..." << std::endl;
         solutionFound = true;
       }
     }
@@ -648,10 +648,72 @@ void nbvInspection::RrtTree::getLeafNode(int dummy)
     }
 }
 
+std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::sortNodeList(std::vector<nbvInspection::Node<StateVec> *> v)
+{
+    int n = v.size();
+    std::vector<nbvInspection::Node<StateVec> *> w(n);
+    for (int i=0; i<n; i++){
+        nbvInspection::Node<StateVec> * curNode = v[i];
+        int counter = 0;
+        for (int j=0; j<n; j++){
+            if (curNode->gain_ < v[j]->gain_){
+                counter += 1;
+            }
+        }
+        w[counter] = curNode;
+    }
+    return w;
+}
+
 std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidates()
 {
-    std::vector<Node<StateVec> *> v;
-    return v;
+    int maxNum = rootNode_->children_.size();
+    std::vector<std::vector<Node<StateVec> *>> classified(maxNum);
+
+    int n = rootNode_->leafNode.size();
+    int dir = 0;
+
+    for (int i; i<n; i++){
+        Node<StateVec> * currentNode = rootNode_->leafNode[i];
+        dir = currentNode->dirNum_;
+        classified[dir].push_back(currentNode);
+    }
+
+    int max = 0;
+    for (int i=0; i<maxNum; i++){
+        if (max < classified[i].size()) {
+            max = classified[i].size();
+        }
+    }
+
+    Node<StateVec> * dummyNode = new Node<StateVec>;
+    dummyNode->gain_ = params_.zero_gain_;
+
+    for (int i=0; i<maxNum; i++){
+        int t = classified[i].size();
+        for (int j=0; j<max-t; j++){
+          classified[i].push_back(dummyNode);
+        }
+    }
+
+    std::vector<std::vector<Node<StateVec> *>> sorted(maxNum);
+    for (int i=0; i<maxNum; i++){
+        sorted[i]=sortNodeList(classified[i]);
+    }
+
+    std::vector<Node<StateVec> *> candidates;
+    std::vector<Node<StateVec> *> competitive;
+
+    for (int i=0; i<max; i++){
+        competitive.clear();
+        for (int j=0; j<maxNum; j++){
+            competitive.push_back(sorted[j][i]);
+        }
+
+        candidates.push_back(sortNodeList(competitive)[0]);
+    }
+
+    return candidates;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
@@ -976,12 +1038,12 @@ void nbvInspection::RrtTree::VRRT_iterate(int iterations)
         continue;
       }
     }
-    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
+//    std::cout << "explor_mode = " << params_.explr_mode_ << std::endl;
     if (params_.explr_mode_==0) { // without coordination
-      std::cout << "No coordination mode..." << std::endl;
+//      std::cout << "No coordination mode..." << std::endl;
       solutionFound=true;
     } else if (params_.explr_mode_==1) { // Use of VBF
-      std::cout << "VBF coordination mode..." << std::endl;
+//      std::cout << "VBF coordination mode..." << std::endl;
       const double CONTRAST = 0.95;
       bool outOfSelfVoronoi = false;
       double my_dist_sq = SQ(peer_vehicles_[0].x() - newState[0])

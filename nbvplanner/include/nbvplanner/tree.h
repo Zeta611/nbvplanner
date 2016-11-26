@@ -28,6 +28,7 @@
 #include <multiagent_collision_check/Tree.h>
 #include <nbvplanner/mesh_structure.h>
 #include <kdtree/kdtree.h>
+#include <algorithm>
 
 namespace nbvInspection {
 
@@ -95,8 +96,8 @@ class Node
 
   std::vector<Node<stateVec> *> leafNode;  //for RootNode only
   std::vector<Node<stateVec> *> allNode;   //for RootNode only
-
 };
+
 
 template<typename stateVec>
 class TreeBase
@@ -130,6 +131,7 @@ class TreeBase
   virtual void initialize() = 0;
 
   virtual void getLeafNode(int dummy) = 0;
+  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
 
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
   virtual void clear() = 0;
@@ -146,6 +148,7 @@ class TreeBase
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
   virtual void VRRT_initialize() = 0 ;
   virtual Eigen::Vector4d getRoot() = 0;
+
 };
 }
 
