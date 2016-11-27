@@ -82,6 +82,7 @@ class nbvPlanner
   void evasionCallback(const multiagent_collision_check::Segment& segmentMsg);
   void addRrts(const multiagent_collision_check::Node& rrtMsg);
   std::vector<std::vector<Eigen::Vector3d>*> rrts_;
+  std::vector<Eigen::Vector4d> peer_target;
   int cnt = 0;
 
   ros::Publisher pub_path;

@@ -48,6 +48,8 @@ struct Params
   double degressiveCoeff_;
   double zero_gain_;
   double cuCoeff_;
+  double radiusInfluence_;
+  double voronoiBias_;
 
   double v_max_;
   double dyaw_max_;
@@ -128,10 +130,9 @@ class TreeBase
   void setPeerStateFromPoseMsg3(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void evade(const multiagent_collision_check::Segment& segmentMsg);
   virtual void iterate(std::vector<Eigen::Vector4d> peer_target) = 0;
-  virtual void initialize() = 0;
-
-  virtual void getLeafNode(int dummy) = 0;
-  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
+  virtual void initialize(std::vector<Eigen::Vector4d> peer_target) = 0;
+  virtual void VRRT_iterate(std::vector<Eigen::Vector4d> peer_target) = 0;
+  virtual void VRRT_initialize() = 0 ;
 
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
   virtual void clear() = 0;
@@ -144,9 +145,9 @@ class TreeBase
   virtual std::vector<tf::Vector3> getPeerPose(int num) = 0;
   virtual struct kdtree* get_kdtree() = 0;
 
-  virtual void VRRT_iterate(int iterations) = 0;
+  virtual void getLeafNode(int dummy) = 0;
+  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
-  virtual void VRRT_initialize() = 0 ;
   virtual Eigen::Vector4d getRoot() = 0;
   virtual Eigen::Vector4d getBest() = 0;
 };

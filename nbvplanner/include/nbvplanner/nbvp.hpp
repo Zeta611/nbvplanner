@@ -47,7 +47,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerRrtPub_ = nh_.advertise<multiagent_collision_check::Node>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
 
-  int rh_mode = true;
+  bool rh_mode = false;
   std::cout << "rh_mode is " << rh_mode << std::endl;
   if (rh_mode) {
     std::cout << "Receding horizon mode" << std::endl;
@@ -195,18 +195,32 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   // Clear old tree and reinitialize.
   Eigen::Vector3d prev_state;
+  for (int i = 0; i < 3; i++)
+    prev_state[i] = 0.0;
   if (cnt > 0) {
     Eigen::Vector4d prev_target = tree_->getBest();
     for (int i = 0; i < 3; i++)
       prev_state[i] = prev_target[i];
-    tree_->clear();
-    tree_->initialize();
-  } else {
-    tree_->clear();
-    tree_->initialize();
-    for (int i = 0; i < 3; i++)
-      prev_state[i] = 0.0;
   }
+  if (rrts_.size() != 3) {
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+  } else {
+    for (int i=0; i<3; i++) {
+      bool flag = false;
+      if (rrts_[i]->size() > 0) {
+        flag = (*rrts_[i])[1][0] == prev_state[0]
+               && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+        if (not flag) {
+          peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+        }
+      } else {
+        peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      }
+    }
+  }
+  tree_->clear();
+  tree_->initialize(peer_target);
   cnt++;
   vector_t path;
   // Iterate the tree construction method.
@@ -227,8 +241,6 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
       res.path = tree_->getPathBackToPrevious(req.header.frame_id);
       return true;
     }
-
-    std::vector<Eigen::Vector4d> peer_target;
     peer_target.clear();
     if (rrts_.size() != 3) {
       peer_target.push_back(Eigen::Vector4d(0,0,0,0));
@@ -368,6 +380,16 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
             "No cost-utility factor for gain accumulation specified. Looking for %s. Default is 0.5.",
             (ns + "/nbvp/gain/cu_coeff").c_str());
   }
+  params_.radiusInfluence_ = 8.0;
+  if (!ros::param::get(ns + "/nbvp/gain/radius_influence", params_.radiusInfluence_)) {
+    ROS_WARN("No radius of influence specified. Looking for %s. Default is 8.0.",
+             (ns + "/nbvp/gain/radius_influence").c_str());
+  }
+  params_.voronoiBias_ = 0.95;
+  if (!ros::param::get(ns + "/nbvp/voronoi_bias", params_.voronoiBias_)) {
+    ROS_WARN("No Voronoi bias specified. Looking for %s. Default is 0.95.",
+             (ns + "/nbvp/vornoi_bias").c_str());
+  }
   params_.extensionRange_ = 1.0;
   if (!ros::param::get(ns + "/nbvp/tree/extension_range", params_.extensionRange_)) {
     ROS_WARN("No value for maximal extension range specified. Looking for %s. Default is 1.0m.",
@@ -485,11 +507,6 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No mode for exploration specified. Looking for %s. Default is NBVP without coordination.",
              (ns + "/nbvp/mode").c_str());
   }
-//  params_.rh_ = 1;
-//  if (!ros::param::get(ns + "/nbvp/rh", params_.rh_)) {
-//    ROS_WARN("Receding horizon method not specified. Looking for %s. Default is receding horizon method enabled.",
-//             (ns + "/nbvp/rh").c_str());
-//  }
   return ret;
 }
 
@@ -563,6 +580,7 @@ void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_che
 template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res)
 {
+  double rate;
   ros::Time computationTime = ros::Time::now();
   // Check that planner is ready to compute path.
   if (!ros::ok()) {
@@ -583,21 +601,52 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
     return true;
   }
   res.path.clear();
+
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr points(new pcl::PointCloud<pcl::PointXYZRGB>);
 
   Eigen::Vector4d r1 = tree_->getRoot();
-  // Clear old tree and reinitialize.
-  tree_->clear();
-  tree_->VRRT_initialize();
-
   Eigen::Vector4d r2 = tree_->getRoot();
 
+  // Clear old tree and reinitialize.
+  Eigen::Vector3d prev_state;
+  for (int i = 0; i < 3; i++)
+    prev_state[i] = 0.0;
+  if (cnt > 0) {
+    Eigen::Vector4d prev_target = tree_->getBest();
+    for (int i = 0; i < 3; i++)
+      prev_state[i] = prev_target[i];
+  }
+  if (rrts_.size() != 3) {
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+  } else {
+    for (int i=0; i<3; i++) {
+      bool flag = false;
+      if (rrts_[i]->size() > 0) {
+        flag = (*rrts_[i])[1][0] == prev_state[0]
+               && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+        if (not flag) {
+          peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+        }
+      } else {
+        peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      }
+    }
+  }
+  tree_->clear();
+  tree_->VRRT_initialize();
+  cnt++;
   vector_t path;
   // Iterate the tree construction method.
   int loopCount = 0;
   while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
     if (tree_->getCounter() > params_.cuttoffIterations_) {
       ROS_INFO("No gain found, shutting down");
+
+      std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
+
+      rate = manager_->explorationRate(1);
+      std::cout << "Exploration Rate: " << rate << std::endl;
       ros::shutdown();
       return true;
     }
@@ -606,9 +655,42 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
       res.path = tree_->getPathBackToPrevious(req.header.frame_id);
       return true;
     }
-    tree_->VRRT_iterate(1);
+    peer_target.clear();
+    if (rrts_.size() != 3) {
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    } else {
+      for (int i=0; i<3; i++) {
+        bool flag = false;
+        if (rrts_[i]->size() > 0) {
+          flag = (*rrts_[i])[1][0] == prev_state[0]
+                 && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+          if (not flag) {
+            peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+          }
+        } else {
+          peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+        }
+      }
+    }
+    tree_->VRRT_iterate(peer_target);
     loopCount++;
   }
+
+  Eigen::Vector4d target_node = tree_->getBest();
+  multiagent_collision_check::Node target_msg;
+  target_msg.prev_state.x = prev_state[0];
+  target_msg.prev_state.y = prev_state[1];
+  target_msg.prev_state.z = prev_state[2];
+  target_msg.target.x = target_node[0];
+  target_msg.target.y = target_node[1];
+  target_msg.target.z = target_node[2];
+  peerRrtPub_.publish(target_msg);
+
+  tree_->getLeafNode(1);
+
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+
   // Extract the best edge.
   res.path = tree_->VRRT_getBestEdge(req.header.frame_id);
 
@@ -652,7 +734,15 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
     segment.poses.push_back(res.path.back());
   }
   evadePub_.publish(segment);
+
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
+
+  std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
+
+//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+
+      outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+      outFile.close();
   return true;
 }
 #endif // NBVP_HPP_
