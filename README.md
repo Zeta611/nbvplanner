@@ -1,6 +1,6 @@
 # Receding Horizon Next Best View Planning
 
-This version is modified by Jaeho Lee
+This version is modified by Jaeho Lee, Chaeju Lee, and Woochang Jung. New multi-agent coordination algorithm is implemented, along with a cost-utility coordination method as a comparison.
 
 The next best view planner is a real-time capable exploration path planner. From the current pose it expands a tree to find a next pose that gives a high exploration gain. This gain reflects the exploration of space that is not yet (sufficiently) known. As the vehicle proceeds on the path, the tree is recomputed, taking into account the new information from the sensor.
 
