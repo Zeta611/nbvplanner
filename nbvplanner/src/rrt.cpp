@@ -585,9 +585,6 @@ void nbvInspection::RrtTree::initialize(std::vector<Eigen::Vector4d> peer_target
         newNode->gain_ = newParent->gain_
                          + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
       }
->>>>>>> RRT_check
-      newNode->gain_ = newParent->gain_
-          + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
 
       for (int i = 0; i<4; i++){buf[i] = newState[i];}
       kd_insert(kdTree_, buf, newNode);
