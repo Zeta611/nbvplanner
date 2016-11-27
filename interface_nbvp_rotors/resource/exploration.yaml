@@ -16,6 +16,8 @@ nbvp/gain/probabilistic: 0.0
 nbvp/gain/range: 1.5
 nbvp/gain/zero: 0.0
 nbvp/gain/degressive_coeff: 0.5
+nbvp/gain/cu_coeff : 1.0
+nbvp/gain/radius_influence : 8.0
 nbvp/tree/extension_range: 1.0
 nbvp/tree/exact_root: true
 nbvp/tree/initial_iterations: 15
@@ -24,6 +26,9 @@ nbvp/dt: 0.1
 
 nbvp/log/throttle: 0.25
 nbvp/log/on: true
+
+nbvp/mode: 1
+nbvp/voronoi_bias: 0.95
 
 # bounding box: necessary to limit the simulation 
 # scenario (smaller than actual gazebo scenario)

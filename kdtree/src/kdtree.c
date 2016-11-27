@@ -48,40 +48,7 @@ OF SUCH DAMAGE.
 #endif	/* pthread support */
 #endif	/* use list node allocator */
 
-struct kdhyperrect {
-	int dim;
-	double *min, *max;              /* minimum/maximum coords */
-};
-
-struct kdnode {
-	double *pos;
-	int dir;
-	void *data;
-
-	struct kdnode *left, *right;	/* negative/positive side */
-};
-
-struct res_node {
-	struct kdnode *item;
-	double dist_sq;
-	struct res_node *next;
-};
-
-struct kdtree {
-	int dim;
-	struct kdnode *root;
-	struct kdhyperrect *rect;
-	void (*destr)(void*);
-};
-
-struct kdres {
-	struct kdtree *tree;
-	struct res_node *rlist, *riter;
-	int size;
-};
-
 #define SQ(x)			((x) * (x))
-
 
 static void clear_rec(struct kdnode *node, void (*destr)(void*));
 static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir, int dim);
@@ -101,8 +68,6 @@ static void free_resnode(struct res_node*);
 #define alloc_resnode()		malloc(sizeof(struct res_node))
 #define free_resnode(n)		free(n)
 #endif
-
-
 
 struct kdtree *kd_create(int k)
 {
@@ -853,4 +818,9 @@ static void clear_results(struct kdres *rset)
 	}
 
 	rset->rlist->next = 0;
+}
+
+struct kdnode *get_root(struct kdtree *tree)
+{
+    return tree->root;
 }

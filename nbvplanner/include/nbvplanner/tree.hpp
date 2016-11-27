@@ -122,7 +122,8 @@ void nbvInspection::TreeBase<stateVec>::evade(const multiagent_collision_check::
     segments_.push_back(new std::vector<Eigen::Vector3d>);
   }
   segments_[i]->clear();
-  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = segmentMsg.poses.begin(); it != segmentMsg.poses.end(); it++) {
+  for(typename std::vector<geometry_msgs::Pose>::const_iterator it = segmentMsg.poses.begin();
+      it != segmentMsg.poses.end(); it++) {
     segments_[i]->push_back(Eigen::Vector3d(it->position.x, it->position.y, it->position.z));
   }
 }

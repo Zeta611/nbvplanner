@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Segment.msg
+  Tree.msg
+  Node.msg
 )
 
 generate_messages(

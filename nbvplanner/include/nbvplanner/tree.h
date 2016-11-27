@@ -22,8 +22,13 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <octomap_world/octomap_manager.h>
+#include <octomap_world/octomap_world.h>
 #include <multiagent_collision_check/Segment.h>
+#include <multiagent_collision_check/Node.h>
+#include <multiagent_collision_check/Tree.h>
 #include <nbvplanner/mesh_structure.h>
+#include <kdtree/kdtree.h>
+#include <algorithm>
 
 namespace nbvInspection {
 
@@ -42,6 +47,9 @@ struct Params
   double gainRange_;
   double degressiveCoeff_;
   double zero_gain_;
+  double cuCoeff_;
+  double radiusInfluence_;
+  double voronoiBias_;
 
   double v_max_;
   double dyaw_max_;
@@ -70,6 +78,8 @@ struct Params
   double log_throttle_;
   double pcl_throttle_;
   double inspection_throttle_;
+
+  int explr_mode_;
 };
 
 template<typename stateVec>
@@ -83,7 +93,13 @@ class Node
   std::vector<Node*> children_;
   double gain_;
   double distance_;
+  int dirNum_;
+  bool isLeaf;
+
+  std::vector<Node<stateVec> *> leafNode;  //for RootNode only
+  std::vector<Node<stateVec> *> allNode;   //for RootNode only
 };
+
 
 template<typename stateVec>
 class TreeBase
@@ -99,7 +115,9 @@ class TreeBase
   stateVec root_;
   stateVec exact_root_;
   std::vector<std::vector<Eigen::Vector3d>*> segments_;
+  int check = 0;
   std::vector<std::string> agentNames_;
+
  public:
   TreeBase();
   TreeBase(mesh::StlMesh * mesh, volumetric_mapping::OctomapManager * manager);
@@ -111,8 +129,11 @@ class TreeBase
   void setPeerStateFromPoseMsg2(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void setPeerStateFromPoseMsg3(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void evade(const multiagent_collision_check::Segment& segmentMsg);
-  virtual void iterate(int iterations) = 0;
-  virtual void initialize() = 0;
+  virtual void iterate(std::vector<Eigen::Vector4d> peer_target) = 0;
+  virtual void initialize(std::vector<Eigen::Vector4d> peer_target) = 0;
+  virtual void VRRT_iterate(std::vector<Eigen::Vector4d> peer_target) = 0;
+  virtual void VRRT_initialize() = 0 ;
+
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame) = 0;
   virtual void clear() = 0;
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame) = 0;
@@ -121,7 +142,14 @@ class TreeBase
   int getCounter();
   bool gainFound();
   void insertPointcloudWithTf(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
-  virtual std::vector<tf::Vector3> printPeerPose(int num) = 0;
+  virtual std::vector<tf::Vector3> getPeerPose(int num) = 0;
+  virtual struct kdtree* get_kdtree() = 0;
+
+  virtual void getLeafNode(int dummy) = 0;
+  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
+  virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
+  virtual Eigen::Vector4d getRoot() = 0;
+  virtual Eigen::Vector4d getBest() = 0;
 };
 }
 

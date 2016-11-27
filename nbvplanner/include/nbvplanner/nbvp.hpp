@@ -1,4 +1,4 @@
-/*
+    /*
  * Copyright 2015 Andreas Bircher, ASL, ETH Zurich, Switzerland
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,14 @@
 #define NBVP_HPP_
 
 #include <fstream>
+#include <ctime>
 #include <eigen3/Eigen/Dense>
 
 #include <visualization_msgs/Marker.h>
 
 #include <nbvplanner/nbvp.h>
+#include <nbvplanner/rrt.h>
+#include <nbvplanner/tree.h>
 
 // Convenience macro to get the absolute yaw difference
 #define ANGABS(x) (fmod(fabs(x),2.0*M_PI)<M_PI?fmod(fabs(x),2.0*M_PI):2.0*M_PI-fmod(fabs(x),2.0*M_PI))
@@ -41,22 +44,30 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   // Set up the topics and services
   params_.inspectionPath_ = nh_.advertise<visualization_msgs::Marker>("inspectionPath", 1000);
   peerPosPub_ = nh_.advertise<visualization_msgs::Marker>("peerPoses", 100);
+  peerRrtPub_ = nh_.advertise<multiagent_collision_check::Node>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
-  plannerService_ = nh_.advertiseService("nbvplanner",
-                                         &nbvInspection::nbvPlanner<stateVec>::plannerCallback,
-                                         this);
+
+  bool rh_mode = false;
+  std::cout << "rh_mode is " << rh_mode << std::endl;
+  if (rh_mode) {
+    std::cout << "Receding horizon mode" << std::endl;
+    plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::plannerCallback, this);
+  } else {
+    std::cout << "NBV / NF mode" << std::endl;
+    plannerService_ = nh_.advertiseService("nbvplanner", &nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback, this);
+  }
+
+  pub_path = nh_.advertise<sensor_msgs::PointCloud2>("path", 1000);
+
   posClient_ = nh_.subscribe("pose", 10, &nbvInspection::nbvPlanner<stateVec>::posCallback, this);
   odomClient_ = nh_.subscribe("odometry", 10, &nbvInspection::nbvPlanner<stateVec>::odomCallback, this);
 
-  pointcloud_sub_ = nh_.subscribe("pointcloud_throttled", 1,
-                                  &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf,
-                                  this);
+  pointcloud_sub_ = nh_.subscribe(
+          "pointcloud_throttled", 1, &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTf, this);
   pointcloud_sub_cam_up_ = nh_.subscribe(
-      "pointcloud_throttled_up", 1,
-      &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamUp, this);
+          "pointcloud_throttled_up", 1, &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamUp, this);
   pointcloud_sub_cam_down_ = nh_.subscribe(
-      "pointcloud_throttled_down", 1,
-      &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamDown, this);
+      "pointcloud_throttled_down", 1, &nbvInspection::nbvPlanner<stateVec>::insertPointcloudWithTfCamDown, this);
 
   if (!setParams()) {
     ROS_ERROR("Could not start the planner. Parameters missing!");
@@ -102,8 +113,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
           mesh_ = new mesh::StlMesh(stlFile);
           mesh_->setResolution(params_.meshResolution_);
           mesh_->setOctomapManager(manager_);
-          mesh_->setCameraParams(params_.camPitch_, params_.camHorizontal_, params_.camVertical_,
-                                 params_.gainRange_);
+          mesh_->setCameraParams(params_.camPitch_, params_.camHorizontal_, params_.camVertical_, params_.gainRange_);
         } else {
           ROS_WARN("Unable to open STL file");
         }
@@ -122,8 +132,8 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerPosClient3_ = nh_.subscribe("peer_pose_3", 10,
                                   &nbvInspection::RrtTree::setPeerStateFromPoseMsg3, tree_);
   // Subscribe to topic used for the collaborative collision avoidance (don't hit your peer).
-  evadeClient_ = nh_.subscribe("/evasionSegment", 10, &nbvInspection::TreeBase<stateVec>::evade,
-                               tree_);
+  evadeClient_ = nh_.subscribe("/evasionSegment", 10, &nbvInspection::TreeBase<stateVec>::evade, tree_);
+  peerRrtClient_ = nh_.subscribe("/peerRrts", 10, &nbvInspection::nbvPlanner<stateVec>::addRrts, this);
   // Not yet ready. Needs a position message first.
   ready_ = false;
 }
@@ -161,6 +171,7 @@ template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::Request& req,
                                                           nbvplanner::nbvp_srv::Response& res)
 {
+  double rate;
   ros::Time computationTime = ros::Time::now();
   // Check that planner is ready to compute path.
   if (!ros::ok()) {
@@ -183,14 +194,45 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   res.path.clear();
 
   // Clear old tree and reinitialize.
+  Eigen::Vector3d prev_state;
+  for (int i = 0; i < 3; i++)
+    prev_state[i] = 0.0;
+  if (cnt > 0) {
+    Eigen::Vector4d prev_target = tree_->getBest();
+    for (int i = 0; i < 3; i++)
+      prev_state[i] = prev_target[i];
+  }
+  if (rrts_.size() != 3) {
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+  } else {
+    for (int i=0; i<3; i++) {
+      bool flag = false;
+      if (rrts_[i]->size() > 0) {
+        flag = (*rrts_[i])[1][0] == prev_state[0]
+               && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+        if (not flag) {
+          peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+        }
+      } else {
+        peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      }
+    }
+  }
   tree_->clear();
-  tree_->initialize();
+  tree_->initialize(peer_target);
+  cnt++;
   vector_t path;
   // Iterate the tree construction method.
   int loopCount = 0;
   while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
     if (tree_->getCounter() > params_.cuttoffIterations_) {
       ROS_INFO("No gain found, shutting down");
+
+      std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
+
+      rate = manager_->explorationRate(1);
+      std::cout << "Exploration Rate: " << rate << std::endl;
       ros::shutdown();
       return true;
     }
@@ -199,9 +241,42 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
       res.path = tree_->getPathBackToPrevious(req.header.frame_id);
       return true;
     }
-    tree_->iterate(1);
+    peer_target.clear();
+    if (rrts_.size() != 3) {
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    } else {
+      for (int i=0; i<3; i++) {
+        bool flag = false;
+        if (rrts_[i]->size() > 0) {
+          flag = (*rrts_[i])[1][0] == prev_state[0]
+                 && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+          if (not flag) {
+            peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+          }
+        } else {
+          peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+        }
+      }
+    }
+    tree_->iterate(peer_target);
     loopCount++;
   }
+
+  Eigen::Vector4d target_node = tree_->getBest();
+  multiagent_collision_check::Node target_msg;
+  target_msg.prev_state.x = prev_state[0];
+  target_msg.prev_state.y = prev_state[1];
+  target_msg.prev_state.z = prev_state[2];
+  target_msg.target.x = target_node[0];
+  target_msg.target.y = target_node[1];
+  target_msg.target.z = target_node[2];
+  peerRrtPub_.publish(target_msg);
+
+  tree_->getLeafNode(1);
+
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+
   // Extract the best edge.
   res.path = tree_->getBestEdge(req.header.frame_id);
 
@@ -215,38 +290,15 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
     segment.poses.push_back(res.path.back());
   }
   evadePub_.publish(segment);
+
   ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
 
-  std::vector<tf::Vector3> peerPoses = tree_->printPeerPose(loopCount);
+  std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
 
-  for ( int i = 0; i <  peerPoses.size() ; i++  ){
-    // Publish visualization of total exploration area
-    visualization_msgs::Marker p;
-    p.header.stamp = ros::Time::now();
-    p.header.seq = 0;
-    p.header.frame_id = params_.navigationFrame_;
-    p.id = i;
-    p.ns = "workspace";
-    p.type = visualization_msgs::Marker::CUBE;
-    p.action = visualization_msgs::Marker::ADD;
-    p.pose.position.x = peerPoses[i].x();
-    p.pose.position.y = peerPoses[i].y();
-    p.pose.position.z = peerPoses[i].z();
-    tf::Quaternion quat;
-    quat.setEuler(0.0, 0.0, 0.0);
-    p.pose.orientation.x = quat.x();
-    p.pose.orientation.y = quat.y();
-    p.pose.orientation.z = quat.z();
-    p.pose.orientation.w = quat.w();
-    p.scale.x = 1;
-    p.scale.y = 1;
-    p.scale.z = 1;
-    p.color.r = 200.0 / 255.0;
-    p.color.g = 100.0 / 255.0;
-    p.color.b = 0.0;
-    p.color.a = 1.0;
-    peerPosPub_.publish(p);
-  }
+//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+
+  outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+  outFile.close();
   return true;
 }
 
@@ -280,7 +332,8 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No camera vertical opening specified. Looking for %s. Default is 60deg.",
              (ns + "/system/camera/vertical").c_str());
   }
-  if(params_.camPitch_.size() != params_.camHorizontal_.size() ||params_.camPitch_.size() != params_.camVertical_.size() ){
+  if (params_.camPitch_.size() != params_.camHorizontal_.size()
+      || params_.camPitch_.size() != params_.camVertical_.size()) {
     ROS_WARN("Specified camera fields of view unclear: Not all parameter vectors have same length! Setting to default.");
     params_.camPitch_.clear();
     params_.camPitch_ = {15.0};
@@ -320,6 +373,22 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN(
         "No degressive factor for gain accumulation specified. Looking for %s. Default is 0.25.",
         (ns + "/nbvp/gain/degressive_coeff").c_str());
+  }
+  params_.cuCoeff_ = 0.5;
+  if (!ros::param::get(ns + "/nbvp/gain/cu_coeff", params_.cuCoeff_)) {
+    ROS_WARN(
+            "No cost-utility factor for gain accumulation specified. Looking for %s. Default is 0.5.",
+            (ns + "/nbvp/gain/cu_coeff").c_str());
+  }
+  params_.radiusInfluence_ = 8.0;
+  if (!ros::param::get(ns + "/nbvp/gain/radius_influence", params_.radiusInfluence_)) {
+    ROS_WARN("No radius of influence specified. Looking for %s. Default is 8.0.",
+             (ns + "/nbvp/gain/radius_influence").c_str());
+  }
+  params_.voronoiBias_ = 0.95;
+  if (!ros::param::get(ns + "/nbvp/voronoi_bias", params_.voronoiBias_)) {
+    ROS_WARN("No Voronoi bias specified. Looking for %s. Default is 0.95.",
+             (ns + "/nbvp/vornoi_bias").c_str());
   }
   params_.extensionRange_ = 1.0;
   if (!ros::param::get(ns + "/nbvp/tree/extension_range", params_.extensionRange_)) {
@@ -433,6 +502,11 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No option for exact root selection specified. Looking for %s. Default is true.",
              (ns + "/nbvp/tree/exact_root").c_str());
   }
+  params_.explr_mode_ = 0;
+  if (!ros::param::get(ns + "/nbvp/mode", params_.explr_mode_)) {
+    ROS_WARN("No mode for exploration specified. Looking for %s. Default is NBVP without coordination.",
+             (ns + "/nbvp/mode").c_str());
+  }
   return ret;
 }
 
@@ -476,4 +550,199 @@ void nbvInspection::nbvPlanner<stateVec>::evasionCallback(
   tree_->evade(segmentMsg);
 }
 
+template<typename stateVec>
+void nbvInspection::nbvPlanner<stateVec>::addRrts(const multiagent_collision_check::Node& rrtMsg) {
+  if (rrts_.size() != 3) {
+    for (int i = 0; i < 3; i++)
+      rrts_.push_back(new std::vector<Eigen::Vector3d>);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    if (rrts_[i]->size() <= 0) {
+      rrts_[i]->push_back(Eigen::Vector3d(rrtMsg.prev_state.x, rrtMsg.prev_state.y, rrtMsg.prev_state.z));
+      rrts_[i]->push_back(Eigen::Vector3d(rrtMsg.target.x, rrtMsg.target.y, rrtMsg.target.z));
+      return;
+    }
+
+    bool flag;
+    flag = (*rrts_[i])[1][0] == rrtMsg.prev_state.x
+           && (*rrts_[i])[1][1] == rrtMsg.prev_state.y && (*rrts_[i])[1][2] == rrtMsg.prev_state.z;
+    if (flag) {
+      rrts_[i]->clear();
+      rrts_[i]->push_back(Eigen::Vector3d(rrtMsg.prev_state.x, rrtMsg.prev_state.y, rrtMsg.prev_state.z));
+      rrts_[i]->push_back(Eigen::Vector3d(rrtMsg.target.x, rrtMsg.target.y, rrtMsg.target.z));
+      return;
+    }
+  }
+}
+
+/*---------------- Volumetric RRT Method ----------------------*/
+template<typename stateVec>
+bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res)
+{
+  double rate;
+  ros::Time computationTime = ros::Time::now();
+  // Check that planner is ready to compute path.
+  if (!ros::ok()) {
+    ROS_INFO_THROTTLE(1, "Exploration finished. Not planning any further moves.");
+    return true;
+  }
+
+  if (!ready_) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: Planner not ready!");
+    return true;
+  }
+  if (manager_ == NULL) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: No octomap available!");
+    return true;
+  }
+  if (manager_->getMapSize().norm() <= 0.0) {
+    ROS_ERROR_THROTTLE(1, "Planner not set up: Octomap is empty!");
+    return true;
+  }
+  res.path.clear();
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr points(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  Eigen::Vector4d r1 = tree_->getRoot();
+  Eigen::Vector4d r2 = tree_->getRoot();
+
+  // Clear old tree and reinitialize.
+  Eigen::Vector3d prev_state;
+  for (int i = 0; i < 3; i++)
+    prev_state[i] = 0.0;
+  if (cnt > 0) {
+    Eigen::Vector4d prev_target = tree_->getBest();
+    for (int i = 0; i < 3; i++)
+      prev_state[i] = prev_target[i];
+  }
+  if (rrts_.size() != 3) {
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+  } else {
+    for (int i=0; i<3; i++) {
+      bool flag = false;
+      if (rrts_[i]->size() > 0) {
+        flag = (*rrts_[i])[1][0] == prev_state[0]
+               && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+        if (not flag) {
+          peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+        }
+      } else {
+        peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      }
+    }
+  }
+  tree_->clear();
+  tree_->VRRT_initialize();
+  cnt++;
+  vector_t path;
+  // Iterate the tree construction method.
+  int loopCount = 0;
+  while ((!tree_->gainFound() || tree_->getCounter() < params_.initIterations_) && ros::ok()) {
+    if (tree_->getCounter() > params_.cuttoffIterations_) {
+      ROS_INFO("No gain found, shutting down");
+
+      std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
+
+      rate = manager_->explorationRate(1);
+      std::cout << "Exploration Rate: " << rate << std::endl;
+      ros::shutdown();
+      return true;
+    }
+    if (loopCount > 1000 * (tree_->getCounter() + 1)) {
+      ROS_INFO_THROTTLE(1, "Exceeding maximum failed iterations, return to previous point!");
+      res.path = tree_->getPathBackToPrevious(req.header.frame_id);
+      return true;
+    }
+    peer_target.clear();
+    if (rrts_.size() != 3) {
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+      peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+    } else {
+      for (int i=0; i<3; i++) {
+        bool flag = false;
+        if (rrts_[i]->size() > 0) {
+          flag = (*rrts_[i])[1][0] == prev_state[0]
+                 && (*rrts_[i])[1][1] == prev_state[1] && (*rrts_[i])[1][2] == prev_state[2];
+          if (not flag) {
+            peer_target.push_back(Eigen::Vector4d((*rrts_[i])[1][0], (*rrts_[i])[1][1], (*rrts_[i])[1][2], 1));
+          }
+        } else {
+          peer_target.push_back(Eigen::Vector4d(0,0,0,0));
+        }
+      }
+    }
+    tree_->VRRT_iterate(peer_target);
+    loopCount++;
+  }
+
+  Eigen::Vector4d target_node = tree_->getBest();
+  multiagent_collision_check::Node target_msg;
+  target_msg.prev_state.x = prev_state[0];
+  target_msg.prev_state.y = prev_state[1];
+  target_msg.prev_state.z = prev_state[2];
+  target_msg.target.x = target_node[0];
+  target_msg.target.y = target_node[1];
+  target_msg.target.z = target_node[2];
+  peerRrtPub_.publish(target_msg);
+
+  tree_->getLeafNode(1);
+
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+
+  // Extract the best edge.
+  res.path = tree_->VRRT_getBestEdge(req.header.frame_id);
+
+  for(int i =0; i<res.path.size(); i++ ){
+    geometry_msgs::Pose ret = res.path[i];
+    pcl::PointXYZRGB point;
+    point.x = ret.position.x;
+    point.y = ret.position.y;
+    point.z = ret.position.z;
+    point.r = 200; point.g = 200; point.b = 200;
+    points->push_back(point);
+  }
+
+  pcl::PointXYZRGB point1;
+  point1.x = r1[0];
+  point1.y = r1[1];
+  point1.z = r1[2];
+  point1.r = 200; point1.g = 0; point1.b = 0;
+  points->push_back(point1);
+
+  pcl::PointXYZRGB point2;
+  point2.x = r2[0];
+  point2.y = r2[1];
+  point2.z = r2[2];
+  point2.r = 0; point2.g = 200; point2.b = 0;
+  points->push_back(point2);
+
+  // Plot points
+  sensor_msgs::PointCloud2 pc2;
+  pcl::toROSMsg(*points, pc2);
+  pc2.header.frame_id = "world";
+  pub_path.publish(pc2);
+
+  tree_->memorizeBestBranch();
+  // Publish path to block for other agents (multi agent only).
+  multiagent_collision_check::Segment segment;
+  segment.header.stamp = ros::Time::now();
+  segment.header.frame_id = params_.navigationFrame_;
+  if (!res.path.empty()) {
+    segment.poses.push_back(res.path.front());
+    segment.poses.push_back(res.path.back());
+  }
+  evadePub_.publish(segment);
+
+  ROS_INFO("Path computation lasted %2.3fs", (ros::Time::now() - computationTime).toSec());
+
+  std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
+
+//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+
+      outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+      outFile.close();
+  return true;
+}
 #endif // NBVP_HPP_

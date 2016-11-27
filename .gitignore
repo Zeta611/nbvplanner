@@ -1,4 +1,4 @@
-/nbvplanner/data
-*cmake-build-debug*
+*/cmake-build-debug
+nbvplanner/data/*
 *.idea*
 *~

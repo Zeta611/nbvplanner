@@ -43,19 +43,33 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual void setStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose);
   virtual void setStateFromOdometryMsg(const nav_msgs::Odometry& pose);
   virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose, int n_peer);
-  virtual void initialize();
-  virtual void iterate(int iterations);
+  virtual void iterate(std::vector<Eigen::Vector4d> peer_target);
+  virtual void initialize(std::vector<Eigen::Vector4d> peer_target);
+  virtual void VRRT_iterate(std::vector<Eigen::Vector4d> peer_target);
+  virtual void VRRT_initialize();
+  virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);
+  virtual void VRRT_SmoothPath(std::vector<nbvInspection::Node<StateVec>*>& states);
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
   virtual void clear();
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
   virtual void memorizeBestBranch();
   void publishNode(Node<StateVec> * node);
   double gain(StateVec state);
-  std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame);
-  virtual std::vector<tf::Vector3> printPeerPose(int num);
+  std::vector<geometry_msgs::Pose> samplePath(StateVec start, StateVec end, std::string targetFrame,
+                                              std::vector<geometry_msgs::Pose> ret);
+
+  virtual std::vector<tf::Vector3> getPeerPose(int num);
   void setPeerPoseInTree(const geometry_msgs::Pose& pose, int n_peer);
   bool biased_coin(double probability);
- protected:
+  virtual struct kdtree* get_kdtree();
+
+  static bool cmp(Node<StateVec> * a, Node<StateVec> * b);
+  void getLeafNode(int dummy);
+  virtual std::vector<Node<Eigen::Vector4d> *> getCandidates();
+  virtual Eigen::Vector4d getRoot();
+  virtual Eigen::Vector4d getBest();
+
+protected:
   kdtree * kdTree_;
   std::stack<StateVec> history_;
   std::vector<StateVec> bestBranchMemory_;
@@ -66,6 +80,7 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   std::fstream fileResponse_;
   std::string logFilePath_;
   std::vector<double> inspectionThrottleTime_;
+
 private:
   static std::vector<tf::Vector3> peer_vehicles_;
 };

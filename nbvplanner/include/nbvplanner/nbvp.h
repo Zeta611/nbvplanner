@@ -25,10 +25,12 @@
 #include <nav_msgs/Odometry.h>
 #include <octomap_world/octomap_manager.h>
 #include <multiagent_collision_check/Segment.h>
+#include <multiagent_collision_check/Tree.h>
 #include <nbvplanner/nbvp_srv.h>
 #include <nbvplanner/mesh_structure.h>
 #include <nbvplanner/tree.hpp>
 #include <nbvplanner/rrt.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #define SQ(x) ((x)*(x))
 #define SQRT2 0.70711
@@ -48,8 +50,10 @@ class nbvPlanner
   ros::Subscriber peerPosClient2_;
   ros::Subscriber peerPosClient3_;
   ros::Subscriber evadeClient_;
+  ros::Subscriber peerRrtClient_;
   ros::Publisher evadePub_;
   ros::Publisher peerPosPub_;
+  ros::Publisher peerRrtPub_;
   ros::ServiceServer plannerService_;
   ros::Subscriber pointcloud_sub_;
   ros::Subscriber pointcloud_sub_cam_up_;
@@ -60,6 +64,7 @@ class nbvPlanner
   volumetric_mapping::OctomapManager * manager_;
 
   bool ready_;
+;
 
  public:
   typedef std::vector<stateVec> vector_t;
@@ -75,7 +80,15 @@ class nbvPlanner
   void insertPointcloudWithTfCamUp(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   void insertPointcloudWithTfCamDown(const sensor_msgs::PointCloud2::ConstPtr& pointcloud);
   void evasionCallback(const multiagent_collision_check::Segment& segmentMsg);
+  void addRrts(const multiagent_collision_check::Node& rrtMsg);
+  std::vector<std::vector<Eigen::Vector3d>*> rrts_;
+  std::vector<Eigen::Vector4d> peer_target;
+  int cnt = 0;
+
+  ros::Publisher pub_path;
+  bool VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res);
 };
+
 }
 
 #endif // NBVP_H_
