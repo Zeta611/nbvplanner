@@ -47,7 +47,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerRrtPub_ = nh_.advertise<multiagent_collision_check::Node>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
 
-  bool rh_mode = false;
+  bool rh_mode = true;
   std::cout << "rh_mode is " << rh_mode << std::endl;
   if (rh_mode) {
     std::cout << "Receding horizon mode" << std::endl;

@@ -559,12 +559,11 @@ void nbvInspection::RrtTree::initialize(std::vector<Eigen::Vector4d> peer_target
       newNode->parent_ = newParent;
       newNode->distance_ = newParent->distance_ + direction.norm();
       newParent->children_.push_back(newNode);
-//        double cost;
-//        if (newNode->distance_ >= params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_) {
-//            cost = newNode->distance_;
-//        }else{
-//            cost = params_.v_max_ * abs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
-//        }
+      double dist_cost;
+      if (newNode->distance_ >= params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_)
+          dist_cost = newNode->distance_;
+      else
+          dist_cost = params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
 
       if (params_.explr_mode_==2) { // cost-utility
         double others_f = 0;
@@ -579,11 +578,11 @@ void nbvInspection::RrtTree::initialize(std::vector<Eigen::Vector4d> peer_target
           }
         }
         newNode->gain_ = newParent->gain_
-                         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_)
+                         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * dist_cost)
                            * exp(-params_.cuCoeff_ * others_f);
       } else { // use of VBF / no coordination
         newNode->gain_ = newParent->gain_
-                         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
+                         + gain(newNode->state_) * exp(-params_.degressiveCoeff_ * dist_cost);
       }
 
       for (int i = 0; i<4; i++){buf[i] = newState[i];}
@@ -1093,6 +1092,11 @@ void nbvInspection::RrtTree::VRRT_iterate(std::vector<Eigen::Vector4d> peer_targ
     newNode->parent_ = newParent;
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
+    double dist_cost;
+    if (newNode->distance_ >= params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_)
+      dist_cost = newNode->distance_;
+    else
+      dist_cost = params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
     if (params_.explr_mode_==2) { // cost-utility
       double others_f = 0;
       for (int i = 0; i < 2; i++) {
@@ -1105,10 +1109,10 @@ void nbvInspection::RrtTree::VRRT_iterate(std::vector<Eigen::Vector4d> peer_targ
             others_f += sqrt(dist_to_peer_sq) / params_.radiusInfluence_;
         }
       }
-      newNode->gain_ = gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_)
+      newNode->gain_ = gain(newNode->state_) * exp(-params_.degressiveCoeff_ * dist_cost)
                          * exp(-params_.cuCoeff_ * others_f);
     } else { // use of VBF / no coordination
-      newNode->gain_ = gain(newNode->state_) * exp(-params_.degressiveCoeff_ * newNode->distance_);
+      newNode->gain_ = gain(newNode->state_) * exp(-params_.degressiveCoeff_ * dist_cost);
     }
 
     double buf[4];
