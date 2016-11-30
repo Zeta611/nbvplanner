@@ -708,7 +708,41 @@ void nbvInspection::RrtTree::changeBestNode(std::vector<Node<Eigen::Vector4d> *>
                                             std::vector<Eigen::Vector4d> peer_target)
 {
     int n = candidates.size();
-    params_->
+    double maxScore = -DBL_MIN;
+
+    Node<StateVec> * previous = bestNode_;
+
+    std::cout << "---------------debugging chagneBestNode-------------" << std::endl;
+    for (int i=0; i<n; i++){
+
+        double penalty = 0;
+        double penalty_coeff = 2; //penalty = sum of coeff/distance
+        Eigen::Vector4d myState = candidates[i]->state_;
+
+        for (int j=0; j<2; j++){
+            std::cout << "peer_x: " << peer_target[j][0] << " peer_y: " << peer_target[j][1] << " peer_z: " << peer_target[j][2] << std::endl;
+            if (peer_target[j][3]){
+
+              double distance = sqrt(SQ(myState[0]-peer_target[j][0])+SQ(myState[1]-peer_target[j][1])+SQ(myState[2]-peer_target[j][2]));
+              if (distance < 0.5) {penalty += 2*penalty_coeff;}
+              else {penalty += penalty_coeff * (1/distance);}
+            }
+        }
+
+        std::cout << "Node_x: " << candidates[i]->state_[0] << " Node_y: " << candidates[i]->state_[1] << " Node_z: " << candidates[i]->state_[2] << std::endl;
+        std::cout << "gain: " << candidates[i]->gain_ << std::endl;
+        std::cout << "score: " << candidates[i]->gain_ - penalty << std::endl;
+        double score = candidates[i]->gain_ - penalty;
+        if (maxScore < score) {
+            maxScore = score;
+            bestNode_ = candidates[i];
+        }
+        std::cout << " " << std::endl;
+    }
+
+    Node<StateVec> * now = bestNode_;
+    std::cout << "Previous: " << previous->state_[0] << " " << previous->state_[1] << " " << previous->state_[2] << " " << previous->gain_ << std::endl;
+    std::cout << "After : " << now->state_[0] << " " << now->state_[1] << " " << now->state_[2] << " " << now->gain_ << std::endl;
 }
 
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)

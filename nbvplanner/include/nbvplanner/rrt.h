@@ -45,13 +45,13 @@ class RrtTree : public TreeBase<Eigen::Vector4d>
   virtual void setPeerStateFromPoseMsg(const geometry_msgs::PoseWithCovarianceStamped& pose, int n_peer);
   virtual void iterate(std::vector<Eigen::Vector4d> peer_target);
   virtual void initialize(std::vector<Eigen::Vector4d> peer_target);
+  virtual void changeBestNode(std::vector<Node<Eigen::Vector4d> *> candidates, std::vector<Eigen::Vector4d> peer_target); //coordination mode only
+
   virtual void VRRT_iterate(std::vector<Eigen::Vector4d> peer_target);
   virtual void VRRT_initialize();
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame);
   virtual void VRRT_SmoothPath(std::vector<nbvInspection::Node<StateVec>*>& states);
   virtual std::vector<geometry_msgs::Pose> getBestEdge(std::string targetFrame);
-
-  virtual void changeBestNode(std::vector<Node<Eigen::Vector4d> *> candidates, std::vector<Eigen::Vector4d> peer_target); //coordination mode only
 
   virtual void clear();
   virtual std::vector<geometry_msgs::Pose> getPathBackToPrevious(std::string targetFrame);
