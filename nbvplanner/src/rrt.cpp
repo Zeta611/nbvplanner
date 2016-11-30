@@ -704,6 +704,13 @@ std::vector<nbvInspection::Node<StateVec> *> nbvInspection::RrtTree::getCandidat
     return candidates;
 }
 
+void nbvInspection::RrtTree::changeBestNode(std::vector<Node<Eigen::Vector4d> *> candidates,
+                                            std::vector<Eigen::Vector4d> peer_target)
+{
+    int n = candidates.size();
+    params_->
+}
+
 std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::getBestEdge(std::string targetFrame)
 {
 // This function returns the first edge of the best branch
@@ -1171,7 +1178,6 @@ std::vector<geometry_msgs::Pose> nbvInspection::RrtTree::VRRT_getBestEdge(std::s
     ret = samplePath((*iter)->state_, (*(iter+1))->state_, targetFrame, ret);
     history_.push((*iter)->state_);
   }
-
   return ret;
 }
 
