@@ -50,6 +50,7 @@ struct Params
   double cuCoeff_;
   double radiusInfluence_;
   double voronoiBias_;
+  double penaltyCoeff_;
 
   double v_max_;
   double dyaw_max_;

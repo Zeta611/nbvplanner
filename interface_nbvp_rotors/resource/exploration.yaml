@@ -29,6 +29,7 @@ nbvp/log/on: true
 
 nbvp/mode: 1
 nbvp/voronoi_bias: 0.95
+nbvp/penaltyCoeff: 2
 
 # bounding box: necessary to limit the simulation 
 # scenario (smaller than actual gazebo scenario)
