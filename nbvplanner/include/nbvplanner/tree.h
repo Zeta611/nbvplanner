@@ -146,6 +146,9 @@ class TreeBase
   virtual struct kdtree* get_kdtree() = 0;
 
   virtual void getLeafNode(int dummy) = 0;
+
+  virtual void changeBestNode(std::vector<Node<Eigen::Vector4d> *> candidates, std::vector<Eigen::Vector4d> peer_target) = 0; //coordination mode only
+
   virtual std::vector<Node<Eigen::Vector4d> *> getCandidates() = 0;
   virtual std::vector<geometry_msgs::Pose> VRRT_getBestEdge(std::string targetFrame) = 0;
   virtual Eigen::Vector4d getRoot() = 0;

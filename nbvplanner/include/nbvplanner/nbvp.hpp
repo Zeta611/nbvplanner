@@ -276,6 +276,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   tree_->getLeafNode(1);
 
   std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
 
   // Extract the best edge.
   res.path = tree_->getBestEdge(req.header.frame_id);
@@ -677,6 +678,27 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
     loopCount++;
   }
 
+  tree_->getLeafNode(1);
+
+  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+
+  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
+  int n = rootnode->leafNode.size();
+  std::cout << "----------Debug Leafnode---------" << std::endl;
+  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
+  for (int i=0; i<n; i++){
+    nbvInspection::Node<stateVec> * curnode = rootnode->leafNode[i];
+    std::cout << "x: " << curnode->state_[0] << " y: " << curnode->state_[1] << " z: " << curnode->state_[2] << " dirNum: " << curnode->dirNum_
+            << " gain: " << curnode->gain_ << std::endl;
+  }
+  std::cout << "--------debug Candidates-----------" << std::endl;
+  for (int i=0; i<candidates.size(); i++){
+    std::cout << (i+1) << "-th Candidates x: " << candidates[i]->state_[0] << " y: " << candidates[i]->state_[1] << " z: " <<candidates[i]->state_[2]
+              << " dirNum: " << candidates[i]->dirNum_ << " gain: " << candidates[i]->gain_ << std::endl;
+  }
+
+  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
+
   Eigen::Vector4d target_node = tree_->getBest();
   multiagent_collision_check::Node target_msg;
   target_msg.prev_state.x = prev_state[0];
@@ -686,10 +708,6 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
   target_msg.target.y = target_node[1];
   target_msg.target.z = target_node[2];
   peerRrtPub_.publish(target_msg);
-
-  tree_->getLeafNode(1);
-
-  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
 
   // Extract the best edge.
   res.path = tree_->VRRT_getBestEdge(req.header.frame_id);
