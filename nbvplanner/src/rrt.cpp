@@ -417,7 +417,11 @@ void nbvInspection::RrtTree::iterate(std::vector<Eigen::Vector4d> peer_target)
     newNode->parent_ = newParent;
     newNode->distance_ = newParent->distance_ + direction.norm();
     newParent->children_.push_back(newNode);
-
+    double dist_cost;
+    if (newNode->distance_ >= params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_)
+      dist_cost = newNode->distance_;
+    else
+      dist_cost = params_.v_max_ * fabs(newParent->state_[3] - newState[3]) / params_.dyaw_max_;
     if (params_.explr_mode_==2) { // cost-utility
       double others_f = 0;
       for (int i = 0; i < 2; i++) {
