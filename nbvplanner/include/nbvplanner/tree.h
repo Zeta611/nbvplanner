@@ -51,6 +51,7 @@ struct Params
   double radiusInfluence_;
   double voronoiBias_;
   double penaltyCoeff_;
+  bool optimal_path_;
 
   double v_max_;
   double dyaw_max_;

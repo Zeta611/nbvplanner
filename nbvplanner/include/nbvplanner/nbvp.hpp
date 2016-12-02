@@ -277,10 +277,11 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   target_msg.target.z = target_node[2];
   peerRrtPub_.publish(target_msg);
 
-  tree_->getLeafNode(1);
-
-  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
-  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
+  if (params_.optimal_path_) {
+      tree_->getLeafNode(1);
+      std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+      tree_->changeBestNode(candidates, peer_target);
+  }
 
   // Extract the best edge.
 
@@ -302,7 +303,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   rate = manager_->explorationRate(1, boundBox);
   outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
-  std::cout << "Exploration Rate: " << rate << std::endl;
+  std::cout << "Exploration Rate: " << rate*100 << "%" << std::endl;
   outFile.close();
   return true;
 }
@@ -513,9 +514,14 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
              (ns + "/nbvp/mode").c_str());
   }
   params_.penaltyCoeff_ = 2;
-  if (!ros::param::get(ns + "/nbvp/mode", params_.explr_mode_)) {
+  if (!ros::param::get(ns + "/nbvp/penaltyCoeff", params_.penaltyCoeff_)) {
       ROS_WARN("No penalty Coefficient specified. Looking for %s. Default is 2",
                (ns + "/nbvp/penaltyCoeff").c_str());
+  }
+  params_.optimal_path_ = true;
+  if (!ros::param::get(ns + "/nbvp/optimal_path_", params_.optimal_path_)) {
+      ROS_WARN("No option for optimal path selection specified. Looking for %s. Default is true",
+               (ns + "/nbvp/optimal_path_").c_str());
   }
   return ret;
 }
@@ -691,11 +697,11 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
     loopCount++;
   }
 
-  tree_->getLeafNode(1);
-
-  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
-
-  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
+  if (params_.optimal_path_) {
+      tree_->getLeafNode(1);
+      std::vector<nbvInspection::Node<stateVec> *> candidates = tree_->getCandidates();
+      tree_->changeBestNode(candidates, peer_target);
+  }
 
   Eigen::Vector4d target_node = tree_->getBest();
   multiagent_collision_check::Node target_msg;
