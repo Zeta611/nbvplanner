@@ -172,6 +172,10 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
                                                           nbvplanner::nbvp_srv::Response& res)
 {
   double rate;
+  std::vector<double> boundBox {params_.minX_ , params_.maxX_ ,
+                                params_.minY_ , params_.maxY_ ,
+                                params_.minZ_ , params_.maxZ_ };
+
   ros::Time computationTime = ros::Time::now();
   // Check that planner is ready to compute path.
   if (!ros::ok()) {
@@ -231,7 +235,7 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
       std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
 
-      rate = manager_->explorationRate(1);
+      rate = manager_->explorationRate(1, boundBox);
       std::cout << "Exploration Rate: " << rate << std::endl;
       ros::shutdown();
       return true;
@@ -273,14 +277,15 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
   target_msg.target.z = target_node[2];
   peerRrtPub_.publish(target_msg);
 
-  tree_->getLeafNode(1);
-
-  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
-  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
+  if (params_.optimal_path_) {
+      tree_->getLeafNode(1);
+      std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
+      tree_->changeBestNode(candidates, peer_target);
+  }
 
   // Extract the best edge.
-  res.path = tree_->getBestEdge(req.header.frame_id);
 
+  res.path = tree_->getBestEdge(req.header.frame_id);
   tree_->memorizeBestBranch();
   // Publish path to block for other agents (multi agent only).
   multiagent_collision_check::Segment segment;
@@ -296,9 +301,9 @@ bool nbvInspection::nbvPlanner<stateVec>::plannerCallback(nbvplanner::nbvp_srv::
 
   std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
 
-//  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
-
+  rate = manager_->explorationRate(1, boundBox);
   outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+  std::cout << "Exploration Rate: " << rate*100 << "%" << std::endl;
   outFile.close();
   return true;
 }
@@ -508,6 +513,16 @@ bool nbvInspection::nbvPlanner<stateVec>::setParams()
     ROS_WARN("No mode for exploration specified. Looking for %s. Default is NBVP without coordination.",
              (ns + "/nbvp/mode").c_str());
   }
+  params_.penaltyCoeff_ = 2;
+  if (!ros::param::get(ns + "/nbvp/penaltyCoeff", params_.penaltyCoeff_)) {
+      ROS_WARN("No penalty Coefficient specified. Looking for %s. Default is 2",
+               (ns + "/nbvp/penaltyCoeff").c_str());
+  }
+  params_.optimal_path_ = true;
+  if (!ros::param::get(ns + "/nbvp/optimal_path_", params_.optimal_path_)) {
+      ROS_WARN("No option for optimal path selection specified. Looking for %s. Default is true",
+               (ns + "/nbvp/optimal_path_").c_str());
+  }
   return ret;
 }
 
@@ -582,6 +597,10 @@ template<typename stateVec>
 bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp_srv::Request& req, nbvplanner::nbvp_srv::Response& res)
 {
   double rate;
+  std::vector<double> boundBox {params_.minX_ , params_.maxX_ ,
+                                params_.minY_ , params_.maxY_ ,
+                                params_.minZ_ , params_.maxZ_ };
+
   ros::Time computationTime = ros::Time::now();
   // Check that planner is ready to compute path.
   if (!ros::ok()) {
@@ -646,7 +665,7 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
 
       std::cout << "Exploration finished, time elapsed: " << ros::Time::now().toSec() << std::endl;
 
-      rate = manager_->explorationRate(1);
+      rate = manager_->explorationRate(1, boundBox);
       std::cout << "Exploration Rate: " << rate << std::endl;
       ros::shutdown();
       return true;
@@ -678,26 +697,11 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
     loopCount++;
   }
 
-  tree_->getLeafNode(1);
-
-  std::vector<nbvInspection::Node<stateVec>*> candidates = tree_->getCandidates();
-
-  nbvInspection::Node<stateVec> * rootnode = (nbvInspection::Node<stateVec> *) tree_->get_kdtree()->root->data;
-  int n = rootnode->leafNode.size();
-  std::cout << "----------Debug Leafnode---------" << std::endl;
-  std::cout << "leafNode size: " << rootnode->leafNode.size() << std::endl;
-  for (int i=0; i<n; i++){
-    nbvInspection::Node<stateVec> * curnode = rootnode->leafNode[i];
-    std::cout << "x: " << curnode->state_[0] << " y: " << curnode->state_[1] << " z: " << curnode->state_[2] << " dirNum: " << curnode->dirNum_
-            << " gain: " << curnode->gain_ << std::endl;
+  if (params_.optimal_path_) {
+      tree_->getLeafNode(1);
+      std::vector<nbvInspection::Node<stateVec> *> candidates = tree_->getCandidates();
+      tree_->changeBestNode(candidates, peer_target);
   }
-  std::cout << "--------debug Candidates-----------" << std::endl;
-  for (int i=0; i<candidates.size(); i++){
-    std::cout << (i+1) << "-th Candidates x: " << candidates[i]->state_[0] << " y: " << candidates[i]->state_[1] << " z: " <<candidates[i]->state_[2]
-              << " dirNum: " << candidates[i]->dirNum_ << " gain: " << candidates[i]->gain_ << std::endl;
-  }
-
-  if (params_.explr_mode_ == 1) {tree_->changeBestNode(candidates, peer_target);}
 
   Eigen::Vector4d target_node = tree_->getBest();
   multiagent_collision_check::Node target_msg;
@@ -759,8 +763,9 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
 
 //  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
 
-      outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
-      outFile.close();
+  outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
+  std::cout << "Exploration Rate: " << rate << std::endl;
+  outFile.close();
   return true;
 }
 #endif // NBVP_HPP_

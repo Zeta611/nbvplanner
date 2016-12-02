@@ -154,7 +154,7 @@ class OctomapWorld : public WorldBase {
       const std::vector<Eigen::Vector3d>& robot_positions,
       size_t* collision_index);
       
-  virtual double explorationRate(int exploration);
+  virtual double explorationRate(int exploration, std::vector<double> boundBox);
   
   // Serialization and deserialization from ROS messages.
   bool getOctomapBinaryMsg(octomap_msgs::Octomap* msg) const;

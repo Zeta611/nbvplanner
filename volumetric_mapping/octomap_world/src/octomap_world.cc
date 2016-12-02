@@ -710,19 +710,21 @@ Eigen::Vector3d OctomapWorld::getMapSize() const {
   return Eigen::Vector3d(max_x - min_x, max_y - min_y, max_z - min_z);
 }
 
-double OctomapWorld::explorationRate(int exploration) {
+double OctomapWorld::explorationRate(int exploration, std::vector<double> boundBox) {
   int exploredCell = 0;
 
   double resolution;
   resolution = OctomapWorld::getResolution();
   double min_x, min_y, min_z, max_x, max_y, max_z;
-  min_x = -20.0;
-  max_x = 20.0;
-  min_y = -20.0;
-  max_y = 10.0;
-  min_z = -0.6;
-  max_z = 3.6;
-  for (double i = min_x; i < max_x+resolution; i += resolution) {
+
+  min_x = boundBox[0];
+  max_x = boundBox[1];
+  min_y = boundBox[2];
+  max_y = boundBox[3];
+  min_z = boundBox[4];
+  max_z = boundBox[5];
+
+  for (double i = min_x; i <= max_x + resolution; i += resolution) {
     for (double j = min_y; j <= max_y + resolution; j += resolution) {
       for (double k = min_z; k <= max_z + resolution; k += resolution) {
         if (OctomapWorld::getCellStatusPoint(Eigen::Vector3d(i, j, k)) != CellStatus::kUnknown) {
@@ -734,7 +736,6 @@ double OctomapWorld::explorationRate(int exploration) {
   double allNode = ((max_x-min_x) / resolution) * ((max_y-min_y) / resolution) * ((max_z-min_z) / resolution);
   return exploredCell / allNode;
 }
-
 
 void OctomapWorld::getMapBounds(Eigen::Vector3d* min_bound,
                                 Eigen::Vector3d* max_bound) const {
