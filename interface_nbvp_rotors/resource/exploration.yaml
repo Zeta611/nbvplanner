@@ -27,8 +27,8 @@ nbvp/dt: 0.1
 nbvp/log/throttle: 0.25
 nbvp/log/on: true
 
-nbvp/mode: 1
-nbvp/voronoi_bias: 0.95
+nbvp/mode: 2
+nbvp/voronoi_bias: 0.9
 nbvp/penaltyCoeff: 2
 nbvp/optimal_path_: false
 

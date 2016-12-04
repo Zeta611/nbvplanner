@@ -47,7 +47,7 @@ nbvInspection::nbvPlanner<stateVec>::nbvPlanner(const ros::NodeHandle& nh,
   peerRrtPub_ = nh_.advertise<multiagent_collision_check::Node>("/peerRrts", 1000);
   evadePub_ = nh_.advertise<multiagent_collision_check::Segment>("/evasionSegment", 100);
 
-  bool rh_mode = true;
+  bool rh_mode = false;
   std::cout << "rh_mode is " << rh_mode << std::endl;
   if (rh_mode) {
     std::cout << "Receding horizon mode" << std::endl;
@@ -762,6 +762,7 @@ bool nbvInspection::nbvPlanner<stateVec>::VRRT__plannerCallback(nbvplanner::nbvp
   std::ofstream outFile("Data.txt", std::ios_base::out|std::ios_base::app);
 
 //  std::string sentence = "time: " + std::to_string(ros::Time::now().toSec()) + "s, Exploration Rate: " + std::to_string(rate*100);
+  rate = manager_->explorationRate(1, boundBox);
 
   outFile << "time: " << ros::Time::now().toSec() << "s, Exploration Rate: " << rate*100 << "%" << std::endl;
   std::cout << "Exploration Rate: " << rate << std::endl;
